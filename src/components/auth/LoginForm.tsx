@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth.schema";
 
+import { GoogleAuthButton } from "./GoogleAuthButton";
+
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -61,6 +63,14 @@ export function LoginForm() {
           {error}
         </div>
       ) : null}
+
+      <GoogleAuthButton mode="login" />
+
+      <div className="my-6 flex items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium text-slate-400">hoặc đăng nhập bằng email</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
 
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <FormField id="email" label="Email" error={errors.email?.message}>

@@ -2,6 +2,7 @@ import { BadgeCheck, ShieldCheck, Sparkles, WalletCards, Zap } from "lucide-reac
 import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/auth/BrandLogo";
+import { GoogleIdentityProvider } from "@/components/auth/GoogleIdentityProvider";
 
 const benefits = [
   { icon: ShieldCheck, text: "Bảo vệ giao dịch minh bạch" },
@@ -11,7 +12,8 @@ const benefits = [
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-white lg:grid lg:grid-cols-[minmax(430px,0.9fr)_minmax(560px,1.1fr)]">
+    <GoogleIdentityProvider>
+      <main className="min-h-screen bg-white lg:grid lg:grid-cols-[minmax(430px,0.9fr)_minmax(560px,1.1fr)]">
       <section className="relative hidden min-h-screen overflow-hidden bg-emerald-950 px-12 py-10 text-white lg:flex lg:flex-col xl:px-16 xl:py-12">
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           <div className="absolute -left-28 -top-28 size-96 rounded-full bg-emerald-500/20 blur-3xl" />
@@ -74,6 +76,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </section>
-    </main>
+      </main>
+    </GoogleIdentityProvider>
   );
 }

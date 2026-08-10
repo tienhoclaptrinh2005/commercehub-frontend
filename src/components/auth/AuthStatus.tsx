@@ -33,13 +33,19 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="hidden text-right sm:block">
-        <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
-        <p className="text-xs text-slate-500">{user.email}</p>
-      </div>
-      <span className="grid size-10 place-items-center rounded-full bg-emerald-100 text-emerald-700">
-        <UserRound className="size-5" />
-      </span>
+      <Link
+        href="/profile"
+        className="flex items-center gap-3 rounded-xl transition hover:bg-slate-50 sm:pl-3"
+        aria-label="Mở hồ sơ của tôi"
+      >
+        <div className="hidden text-right sm:block">
+          <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
+          <p className="text-xs text-slate-500">{user.email}</p>
+        </div>
+        <span className="grid size-10 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+          <UserRound className="size-5" />
+        </span>
+      </Link>
       <button
         type="button"
         onClick={() => void logout()}

@@ -6,6 +6,7 @@ export function useAuth() {
   const isSubmitting = useAuthStore((state) => state.isSubmitting);
   const error = useAuthStore((state) => state.error);
   const login = useAuthStore((state) => state.login);
+  const googleLogin = useAuthStore((state) => state.googleLogin);
   const register = useAuthStore((state) => state.register);
   const logout = useAuthStore((state) => state.logout);
   const clearError = useAuthStore((state) => state.clearError);
@@ -18,6 +19,7 @@ export function useAuth() {
     isSubmitting,
     error,
     login,
+    googleLogin,
     register,
     logout,
     clearError,

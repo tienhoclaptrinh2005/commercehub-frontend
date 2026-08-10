@@ -18,6 +18,7 @@ interface AuthState {
   syncSession: (session: AuthSession | null) => void;
   clearError: () => void;
   login: (credentials: Omit<LoginRequest, "deviceId">) => Promise<AuthSession>;
+  googleLogin: (credential: string) => Promise<AuthSession>;
   register: (payload: RegisterRequest) => Promise<AuthSession>;
   logout: () => Promise<void>;
 }
@@ -45,6 +46,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return session;
     } catch (error) {
       set({ error: getApiErrorMessage(error) });
+      throw error;
+    } finally {
+      set({ isSubmitting: false });
+    }
+  },
+
+  googleLogin: async (credential) => {
+    set({ isSubmitting: true, error: null });
+    try {
+      const session = await authService.googleLogin(credential);
+      saveAuthSession(session);
+      set({ session, isHydrated: true });
+      return session;
+    } catch (error) {
+      set({
+        error: getApiErrorMessage(error, "Đăng nhập bằng Google thất bại."),
+      });
       throw error;
     } finally {
       set({ isSubmitting: false });

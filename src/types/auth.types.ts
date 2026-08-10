@@ -40,3 +40,8 @@ export interface RegisterRequest {
   fullName: string;
   password: string;
 }
+
+export interface GoogleLoginRequest {
+  credential: string;
+  deviceId?: string;
+}

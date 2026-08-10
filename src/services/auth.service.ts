@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   AuthResponse,
   AuthSession,
+  GoogleLoginRequest,
   LoginRequest,
   RegisterRequest,
 } from "@/types";
@@ -31,6 +32,18 @@ export const authService = {
   async register(payload: RegisterRequest): Promise<AuthSession> {
     const response = await api.post<ApiResponse<AuthResponse>>(
       "/api/v1/auth/register",
+      payload,
+    );
+    return unwrapAuthResponse(response.data);
+  },
+
+  async googleLogin(credential: string): Promise<AuthSession> {
+    const payload: GoogleLoginRequest = {
+      credential,
+      deviceId: getDeviceId(),
+    };
+    const response = await api.post<ApiResponse<AuthResponse>>(
+      "/api/v1/auth/google",
       payload,
     );
     return unwrapAuthResponse(response.data);
