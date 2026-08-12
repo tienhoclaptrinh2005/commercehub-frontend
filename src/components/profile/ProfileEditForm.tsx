@@ -95,7 +95,8 @@ export function ProfileEditForm() {
     if (isChangingUsername && isUsernameLocked) {
       setNotice({
         type: "error",
-        message: "Username đã được đổi một lần và hiện không thể thay đổi thêm.",
+        message:
+          "Username đã được đổi một lần và hiện không thể thay đổi thêm.",
       });
       return;
     }
@@ -146,14 +147,22 @@ export function ProfileEditForm() {
     setIsSavingAvatar(true);
     setAvatarNotice(null);
     try {
-      const nextProfile = await userService.updateAvatar({ avatarUrl: avatarUrl.trim() });
+      const nextProfile = await userService.updateAvatar({
+        avatarUrl: avatarUrl.trim(),
+      });
       setProfile(nextProfile);
       resetAvatar({ avatarUrl: nextProfile.avatarUrl || "" });
-      setAvatarNotice({ type: "success", message: "Ảnh đại diện đã được cập nhật." });
+      setAvatarNotice({
+        type: "success",
+        message: "Ảnh đại diện đã được cập nhật.",
+      });
     } catch (requestError) {
       setAvatarNotice({
         type: "error",
-        message: getApiErrorMessage(requestError, "Không thể cập nhật ảnh đại diện"),
+        message: getApiErrorMessage(
+          requestError,
+          "Không thể cập nhật ảnh đại diện",
+        ),
       });
     } finally {
       setIsSavingAvatar(false);
@@ -161,14 +170,22 @@ export function ProfileEditForm() {
   });
 
   if (isLoading && !profile) {
-    return <div className="h-[720px] animate-pulse rounded-xl border border-slate-200 bg-white" />;
+    return (
+      <div className="h-[720px] animate-pulse rounded-xl border border-slate-200 bg-white" />
+    );
   }
 
   if (!profile) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        <p className="font-semibold">{error || "Không thể tải hồ sơ của bạn"}</p>
-        <button type="button" onClick={() => void refresh()} className="mt-3 font-bold underline">
+        <p className="font-semibold">
+          {error || "Không thể tải hồ sơ của bạn"}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="mt-3 font-bold underline"
+        >
           Thử tải lại
         </button>
       </div>
@@ -188,21 +205,37 @@ export function ProfileEditForm() {
         <div className="px-5 pb-6 sm:px-7">
           <div className="-mt-12 flex items-end gap-4">
             <div className="relative">
-              <ProfileAvatar avatarUrl={profile.avatarUrl} fullName={profile.fullName} className="size-28" />
+              <ProfileAvatar
+                avatarUrl={profile.avatarUrl}
+                fullName={profile.fullName}
+                className="size-28"
+              />
               <span className="absolute bottom-1 right-0 grid size-9 place-items-center rounded-full border-2 border-white bg-emerald-500 text-white shadow-md">
                 <Camera className="size-4" />
               </span>
             </div>
             <div className="pb-2">
-              <p className="text-lg font-bold text-slate-950">{profile.fullName}</p>
-              <p className="text-sm text-slate-500">@{profile.username || "chưa-có-username"}</p>
+              <p className="text-lg font-bold text-slate-950">
+                {profile.fullName}
+              </p>
+              <p className="text-sm text-slate-500">
+                @{profile.username || "chưa-có-username"}
+              </p>
             </div>
           </div>
 
-          <form onSubmit={onAvatarSubmit} className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4" noValidate>
+          <form
+            onSubmit={onAvatarSubmit}
+            className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4"
+            noValidate
+          >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
               <div className="min-w-0 flex-1">
-                <FormField id="avatarUrl" label="URL ảnh đại diện" error={avatarErrors.avatarUrl?.message}>
+                <FormField
+                  id="avatarUrl"
+                  label="URL ảnh đại diện"
+                  error={avatarErrors.avatarUrl?.message}
+                >
                   <div className="relative">
                     <Link2 className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
                     <Input
@@ -210,20 +243,34 @@ export function ProfileEditForm() {
                       type="url"
                       placeholder="https://cdn.example.com/avatar.jpg"
                       hasError={Boolean(avatarErrors.avatarUrl)}
-                      aria-describedby={avatarErrors.avatarUrl ? "avatarUrl-error" : "avatar-url-help"}
+                      aria-describedby={
+                        avatarErrors.avatarUrl
+                          ? "avatarUrl-error"
+                          : "avatar-url-help"
+                      }
                       {...registerAvatar("avatarUrl")}
                     />
                   </div>
                 </FormField>
-                <p id="avatar-url-help" className="mt-2 text-xs leading-5 text-slate-500">
-                  Backend hiện nhận URL ảnh; chưa có endpoint upload file trực tiếp.
+                <p
+                  id="avatar-url-help"
+                  className="mt-2 text-xs leading-5 text-slate-500"
+                >
+                  Backend hiện nhận URL ảnh; chưa có endpoint upload file trực
+                  tiếp.
                 </p>
               </div>
-              <Button type="submit" isLoading={isSavingAvatar} className="w-full lg:w-auto">
+              <Button
+                type="submit"
+                isLoading={isSavingAvatar}
+                className="w-full lg:w-auto"
+              >
                 {isSavingAvatar ? "Đang cập nhật..." : "Cập nhật ảnh"}
               </Button>
             </div>
-            {avatarNotice ? <NoticeBanner notice={avatarNotice} className="mt-4" /> : null}
+            {avatarNotice ? (
+              <NoticeBanner notice={avatarNotice} className="mt-4" />
+            ) : null}
           </form>
         </div>
       </section>
@@ -236,14 +283,19 @@ export function ProfileEditForm() {
           <div>
             <h2 className="font-bold text-slate-950">Thông tin cá nhân</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Cập nhật tên hiển thị, username và số điện thoại. Username chỉ được đổi một lần.
+              Cập nhật tên hiển thị, username và số điện thoại. Username chỉ
+              được đổi một lần.
             </p>
           </div>
         </div>
 
         {notice ? <NoticeBanner notice={notice} className="mt-5" /> : null}
 
-        <form onSubmit={onSubmit} className="mt-6 grid gap-5 sm:grid-cols-2" noValidate>
+        <form
+          onSubmit={onSubmit}
+          className="mt-6 grid gap-5 sm:grid-cols-2"
+          noValidate
+        >
           <FormField id="profileEmail" label="Địa chỉ email">
             <div className="relative">
               <Mail className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
@@ -254,12 +306,19 @@ export function ProfileEditForm() {
                 className="cursor-not-allowed bg-slate-50 text-slate-500"
               />
               {profile.isEmailVerified ? (
-                <BadgeCheck className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-emerald-600" aria-label="Email đã xác minh" />
+                <BadgeCheck
+                  className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-emerald-600"
+                  aria-label="Email đã xác minh"
+                />
               ) : null}
             </div>
           </FormField>
 
-          <FormField id="username" label="Username công khai" error={errors.username?.message}>
+          <FormField
+            id="username"
+            label="Username công khai"
+            error={errors.username?.message}
+          >
             <div className="relative">
               <UserRound className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
               <Input
@@ -268,8 +327,14 @@ export function ProfileEditForm() {
                 placeholder="ten-dang-nhap"
                 hasError={Boolean(errors.username)}
                 readOnly={isUsernameLocked}
-                className={isUsernameLocked ? "cursor-not-allowed bg-slate-50 text-slate-500" : undefined}
-                aria-describedby={errors.username ? "username-error" : "username-policy"}
+                className={
+                  isUsernameLocked
+                    ? "cursor-not-allowed bg-slate-50 text-slate-500"
+                    : undefined
+                }
+                aria-describedby={
+                  errors.username ? "username-error" : "username-policy"
+                }
                 {...register("username")}
               />
             </div>
@@ -281,16 +346,23 @@ export function ProfileEditForm() {
                   : "border-amber-200 bg-amber-50 text-amber-900"
               }`}
             >
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <TriangleAlert
+                className="mt-0.5 size-4 shrink-0"
+                aria-hidden="true"
+              />
               <span>
                 {isUsernameLocked
-                  ? "Username đã được đổi và khóa để người mua luôn nhận diện đúng người bán khi cần bảo hành."
-                  : "Chỉ được đổi username một lần. Hãy kiểm tra kỹ vì username được dùng trong đường dẫn hồ sơ, lịch sử mua bán và tra cứu bảo hành."}
+                  ? "Username đã được đổi 1 lần ! Và đã đạt giới hạn."
+                  : "Chỉ được đổi username một lần duy nhất."}
               </span>
             </div>
           </FormField>
 
-          <FormField id="fullName" label="Họ và tên" error={errors.fullName?.message}>
+          <FormField
+            id="fullName"
+            label="Họ và tên"
+            error={errors.fullName?.message}
+          >
             <div className="relative">
               <UserRound className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
               <Input
@@ -298,13 +370,19 @@ export function ProfileEditForm() {
                 autoComplete="name"
                 placeholder="Nguyễn Văn An"
                 hasError={Boolean(errors.fullName)}
-                aria-describedby={errors.fullName ? "fullName-error" : undefined}
+                aria-describedby={
+                  errors.fullName ? "fullName-error" : undefined
+                }
                 {...register("fullName")}
               />
             </div>
           </FormField>
 
-          <FormField id="phone" label="Số điện thoại" error={errors.phone?.message}>
+          <FormField
+            id="phone"
+            label="Số điện thoại"
+            error={errors.phone?.message}
+          >
             <div className="relative">
               <Phone className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
               <Input
@@ -324,7 +402,11 @@ export function ProfileEditForm() {
           </FormField>
 
           <div className="sm:col-span-2 flex justify-end border-t border-slate-100 pt-5">
-            <Button type="submit" isLoading={isSaving} className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              isLoading={isSaving}
+              className="w-full sm:w-auto"
+            >
               {isSaving ? "Đang lưu thay đổi..." : "Lưu thay đổi"}
             </Button>
           </div>
@@ -334,7 +416,13 @@ export function ProfileEditForm() {
   );
 }
 
-function NoticeBanner({ notice, className = "" }: { notice: Exclude<Notice, null>; className?: string }) {
+function NoticeBanner({
+  notice,
+  className = "",
+}: {
+  notice: Exclude<Notice, null>;
+  className?: string;
+}) {
   return (
     <div
       className={`${className} rounded-lg border px-4 py-3 text-sm font-semibold ${

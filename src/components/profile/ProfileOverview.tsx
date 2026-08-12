@@ -17,6 +17,7 @@ import { useMyProfile, useUserLevels } from "@/hooks/api/useUserProfile";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 import { ProfileAvatar } from "./ProfileAvatar";
+import { UserRoleBadges } from "./UserRoleBadges";
 
 export function ProfileOverview() {
   const { profile, isLoading, error, refresh } = useMyProfile();
@@ -54,20 +55,22 @@ export function ProfileOverview() {
   return (
     <div className="space-y-5">
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="relative h-36 overflow-hidden bg-emerald-900">
-          <div className="absolute -left-14 -top-24 size-72 rounded-full bg-emerald-400/20 blur-3xl" />
-          <div className="absolute -bottom-32 right-0 size-80 rounded-full bg-cyan-400/15 blur-3xl" />
-        </div>
+        <div className="h-36 bg-white" />
         <div className="px-5 pb-6 sm:px-7">
           <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <ProfileAvatar avatarUrl={profile.avatarUrl} fullName={profile.fullName} />
+              <ProfileAvatar
+                avatarUrl={profile.avatarUrl}
+                fullName={profile.fullName}
+                className="size-28"
+              />
               <div className="pb-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-bold text-slate-950">{profile.fullName}</h2>
                   <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
                     Cấp {profile.userLevel} · {currentLevel?.label || "Thành viên"}
                   </span>
+                  <UserRoleBadges roles={profile.roles} />
                 </div>
                 <p className="mt-1 text-sm text-slate-500">@{profile.username || "chưa-có-username"}</p>
               </div>

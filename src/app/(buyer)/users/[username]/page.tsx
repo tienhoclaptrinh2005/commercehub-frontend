@@ -45,6 +45,7 @@ export default function PublicUserPage() {
         successfulSaleCount: Number(profile.successfulSaleCount ?? 0),
         userLevel: profile.userLevel,
         sellerEnabled,
+        roles: profile.roles ?? [],
         statusLabel: "Đang hoạt động",
         messageHref: `/chat?username=${encodeURIComponent(profile.username)}`,
         products: mockProducts,

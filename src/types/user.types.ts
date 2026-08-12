@@ -1,4 +1,5 @@
 export type UserStatus = "ACTIVE" | "BANNED" | "SUSPENDED";
+export type UserRole = "BUYER" | "SELLER" | "ADMIN";
 
 export interface PublicUserProfile {
   username: string;
@@ -8,6 +9,7 @@ export interface PublicUserProfile {
   createdAt: string;
   completedPurchaseCount: number;
   successfulSaleCount: number;
+  roles: UserRole[];
 }
 
 export interface UserProfile {
@@ -27,6 +29,7 @@ export interface UserProfile {
   lastActiveAt: string;
   /** TODO BACKEND: trả false sau khi người dùng đã đổi username một lần. */
   usernameChangeAllowed?: boolean;
+  roles: UserRole[];
 }
 
 export interface UserLevel {

@@ -14,7 +14,10 @@ import {
 import Link from "next/link";
 
 import { ProductCard } from "@/components/product/ProductCard";
-import type { ProductSummary } from "@/types";
+import { formatDate } from "@/lib/format";
+import type { ProductSummary, UserRole } from "@/types";
+
+import { UserRoleBadges } from "./UserRoleBadges";
 
 export interface PublicProfilePresentation {
   name: string;
@@ -26,6 +29,7 @@ export interface PublicProfilePresentation {
   statusLabel?: string;
   userLevel?: number;
   sellerEnabled: boolean;
+  roles: UserRole[];
   messageHref: string;
   products?: ProductSummary[];
   productsLoading?: boolean;
@@ -36,13 +40,6 @@ export interface PublicProfilePresentation {
 
 interface PublicProfileBodyProps {
   profile: PublicProfilePresentation;
-}
-
-function formatJoinedMonth(value: string): string {
-  return new Intl.DateTimeFormat("vi-VN", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
 }
 
 function formatCount(value: number): string {
@@ -96,6 +93,7 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
                     <h1 className="text-2xl font-bold tracking-[-0.035em] text-slate-950 sm:text-3xl">
                       {profile.name}
                     </h1>
+                    <UserRoleBadges roles={profile.roles} />
                   </div>
 
                   <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -134,7 +132,7 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <ProfileStat icon={CalendarDays} label="Ngày tham gia" value={formatJoinedMonth(profile.joinedAt)} />
+                <ProfileStat icon={CalendarDays} label="Ngày tham gia" value={formatDate(profile.joinedAt)} />
                 <ProfileStat
                   icon={ShoppingBag}
                   label="Đơn mua hoàn thành"
