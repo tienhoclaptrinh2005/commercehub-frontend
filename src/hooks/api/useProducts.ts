@@ -4,7 +4,112 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getApiErrorMessage } from "@/services/api";
 import { productService } from "@/services/product.service";
-import type { ProductSummary } from "@/types";
+import type { PageResponse, ProductListFilters, ProductSummary } from "@/types";
+
+const EMPTY_PAGE: PageResponse<ProductSummary> = {
+  currentPage: 0,
+  pageSize: 12,
+  totalPages: 0,
+  totalElements: 0,
+  data: [],
+};
+
+interface UseProductsOptions extends ProductListFilters {
+  page?: number;
+  size?: number;
+}
+
+export function useProducts({
+  page = 0,
+  size = 12,
+  keyword,
+  categoryId,
+  shopId,
+}: UseProductsOptions = {}) {
+  const [reloadKey, setReloadKey] = useState(0);
+  const normalizedKeyword = keyword?.trim() || undefined;
+  const requestKey = JSON.stringify({
+    page,
+    size,
+    keyword: normalizedKeyword,
+    categoryId,
+    shopId,
+    reloadKey,
+  });
+  const [state, setState] = useState<{
+    requestKey: string;
+    result: PageResponse<ProductSummary>;
+    error: string | null;
+  }>({
+    requestKey: "",
+    result: { ...EMPTY_PAGE, pageSize: size },
+    error: null,
+  });
+
+  useEffect(() => {
+    let isCancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const filters: ProductListFilters = {
+      keyword: normalizedKeyword,
+      categoryId,
+      shopId,
+    };
+    const hasFilters = Boolean(normalizedKeyword || categoryId || shopId);
+
+    const request = hasFilters
+      ? productService.search(filters, page, size)
+      : productService.getAll(page, size);
+
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error("Máy chủ phản hồi quá lâu. Vui lòng thử lại."));
+      }, 16_000);
+    });
+
+    Promise.race([request, timeout])
+      .then((nextResult) => {
+        clearTimeout(timeoutId);
+        if (!isCancelled) {
+          setState({ requestKey, result: nextResult, error: null });
+        }
+      })
+      .catch((requestError: unknown) => {
+        clearTimeout(timeoutId);
+        if (!isCancelled) {
+          setState({
+            requestKey,
+            result: { ...EMPTY_PAGE, currentPage: page, pageSize: size },
+            error: getApiErrorMessage(
+              requestError,
+              "Không thể tải danh sách sản phẩm",
+            ),
+          });
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [categoryId, normalizedKeyword, page, requestKey, shopId, size]);
+
+  const refresh = useCallback(() => {
+    setReloadKey((current) => current + 1);
+  }, []);
+
+  const isCurrentRequest = state.requestKey === requestKey;
+  const result = isCurrentRequest
+    ? state.result
+    : { ...EMPTY_PAGE, currentPage: page, pageSize: size };
+
+  return {
+    result,
+    products: result.data,
+    isLoading: !isCurrentRequest,
+    error: isCurrentRequest ? state.error : null,
+    refresh,
+  };
+}
 
 interface ProductState {
   shopId: number | null;

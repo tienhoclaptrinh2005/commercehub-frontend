@@ -1,35 +1,18 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
-  Bot,
   ChevronRight,
-  CircleHelp,
-  Globe2,
   Heart,
   KeyRound,
   Megaphone,
-  Network,
-  Newspaper,
   SearchCheck,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
   Video,
-  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 
-const categories: Array<{ label: string; href: string; icon: LucideIcon }> = [
-  { label: "Công cụ MMO", href: "/categories/cong-cu-mmo", icon: Wrench },
-  { label: "Tài khoản quảng cáo", href: "/categories/tai-khoan-ads", icon: Megaphone },
-  { label: "Dịch vụ tương tác", href: "/categories/tuong-tac", icon: Network },
-  { label: "Web & Tools", href: "/categories/web-tools-extension", icon: Globe2 },
-  { label: "Workflows N8N", href: "/categories/workflows-n8n", icon: Bot },
-  { label: "Dịch vụ tăng like", href: "/categories/tang-like", icon: Heart },
-  { label: "Dịch vụ TikTok", href: "/categories/tiktok", icon: Video },
-  { label: "Tin tức", href: "/news", icon: Newspaper },
-  { label: "Trung tâm trợ giúp", href: "/help", icon: CircleHelp },
-];
+import { HomeCategorySidebar } from "@/components/category/HomeCategorySidebar";
 
 const products: Array<{
   title: string;
@@ -79,25 +62,7 @@ export default function BuyerHomePage() {
   return (
     <div>
       <section className="mx-auto grid max-w-[1200px] gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white lg:block">
-          <div className="flex items-center gap-2 bg-emerald-700 px-4 py-3 text-sm font-bold text-white">
-            <ShoppingBag className="size-4" />
-            Danh mục sản phẩm
-          </div>
-          <nav className="py-2" aria-label="Danh mục sản phẩm">
-            {categories.map(({ label, href, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="group flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
-              >
-                <Icon className="size-4 text-slate-500 transition group-hover:text-emerald-600" />
-                <span className="flex-1">{label}</span>
-                <ChevronRight className="size-3.5 text-slate-400" />
-              </Link>
-            ))}
-          </nav>
-        </aside>
+        <HomeCategorySidebar />
 
         <div className="min-w-0">
           <div className="relative isolate overflow-hidden rounded-xl bg-emerald-900 px-6 py-9 text-white sm:px-10 sm:py-11">

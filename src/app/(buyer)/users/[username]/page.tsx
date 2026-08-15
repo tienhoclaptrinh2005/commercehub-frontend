@@ -8,12 +8,13 @@ import {
   PublicProfileSkeleton,
 } from "@/components/profile/PublicProfileBody";
 import { usePublicProfile } from "@/hooks/api/usePublicProfile";
-import { createMockShopProducts } from "@/lib/public-profile.mock";
+import { useShopProducts } from "@/hooks/api/useProducts";
 
 export default function PublicUserPage() {
   const params = useParams<{ username: string }>();
   const username = params.username || "";
   const { profile, isLoading, error, refresh } = usePublicProfile(username);
+  const shopProducts = useShopProducts(profile?.shopId ?? undefined);
 
   if (isLoading && !profile) {
     return <PublicProfileSkeleton />;
@@ -29,10 +30,8 @@ export default function PublicUserPage() {
   }
 
   // Theo luồng đã chốt, thành viên từ cấp 2 có khả năng bán hàng.
-  // TODO BACKEND: public profile cần trả sellerProfile/shopId để tải sản phẩm thật theo username.
   const sellerEnabled = Number(profile.userLevel ?? 1) >= 2;
-  const hasSellerActivity = Number(profile.successfulSaleCount ?? 0) > 0;
-  const mockProducts = sellerEnabled && hasSellerActivity ? createMockShopProducts(profile) : [];
+  const hasPublicShop = typeof profile.shopId === "number";
 
   return (
     <PublicProfileBody
@@ -48,9 +47,10 @@ export default function PublicUserPage() {
         roles: profile.roles ?? [],
         statusLabel: "Đang hoạt động",
         messageHref: `/chat?username=${encodeURIComponent(profile.username)}`,
-        products: mockProducts,
-        productsLoading: false,
-        productsAreMock: mockProducts.length > 0,
+        products: hasPublicShop ? shopProducts.products : [],
+        productsLoading: hasPublicShop && shopProducts.isLoading,
+        productsError: hasPublicShop ? shopProducts.error : null,
+        onRetryProducts: hasPublicShop ? shopProducts.refresh : undefined,
       }}
     />
   );

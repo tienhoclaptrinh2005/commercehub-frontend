@@ -34,7 +34,6 @@ export interface PublicProfilePresentation {
   products?: ProductSummary[];
   productsLoading?: boolean;
   productsError?: string | null;
-  productsAreMock?: boolean;
   onRetryProducts?: () => void;
 }
 
@@ -159,12 +158,6 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
             ) : null}
           </div>
 
-          {profile.productsAreMock ? (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-              Dữ liệu sản phẩm bên dưới là dữ liệu mẫu. Backend chưa trả sellerProfile/shopId trong hồ sơ công khai theo username.
-            </div>
-          ) : null}
-
           {profile.productsLoading ? (
             <PublicProductGridSkeleton />
           ) : profile.productsError ? (
@@ -204,7 +197,6 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  isPreview={profile.productsAreMock}
                   sellerHandle={profile.handle}
                 />
               ))}

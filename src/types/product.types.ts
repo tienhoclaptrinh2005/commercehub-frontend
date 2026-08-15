@@ -11,6 +11,15 @@ export interface ProductVariant {
   stockCount: number;
 }
 
+export interface PreOrderConfig {
+  id: number;
+  productId: number;
+  maxProcessingHours: number;
+  orderInstructions: string | null;
+  buyerInputFields: string | null;
+  autoRejectIfUnavailable: boolean;
+}
+
 export interface ProductSummary {
   id: number;
   shopId: number;
@@ -30,6 +39,33 @@ export interface ProductSummary {
   createdAt: string;
   updatedAt: string;
   variants: ProductVariant[];
-  imageUrls: string[];
   minPrice: number;
+}
+
+export interface ProductDetail {
+  id: number;
+  shopId: number;
+  shopName: string;
+  categoryId: number;
+  categoryName: string;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  productType: string;
+  deliveryType: string;
+  status: ProductStatus;
+  soldCount: number;
+  failedDisputeCount: number;
+  thumbnailUrl: string | null;
+  createdAt: string;
+  stockCount: number;
+  variants: ProductVariant[];
+  preOrderConfig: PreOrderConfig | null;
+}
+
+export interface ProductListFilters {
+  keyword?: string;
+  categoryId?: number;
+  shopId?: number;
 }

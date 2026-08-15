@@ -1,5 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { Camera, CirclePlay, Mail, MessageCircle, Rss, Send } from "lucide-react";
+import {
+  Camera,
+  CirclePlay,
+  Mail,
+  MessageCircle,
+  Rss,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 
 const footerLinks = {
@@ -32,12 +39,15 @@ export function Footer() {
     <footer className="bg-emerald-900 text-white">
       <div className="mx-auto grid max-w-[1200px] gap-10 px-6 py-12 md:grid-cols-2 lg:grid-cols-[1.25fr_0.8fr_1fr_1.15fr]">
         <div>
-          <Link href="/" className="inline-flex items-baseline text-3xl font-bold tracking-[-0.04em]">
+          <Link
+            href="/"
+            className="inline-flex items-baseline text-3xl font-bold tracking-[-0.04em]"
+          >
             Commerce<span className="text-emerald-300">Hub</span>
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-6 text-emerald-100/75">
-            Nền tảng thương mại điện tử dành cho sản phẩm số, kết nối cộng đồng người mua và nhà bán hàng
-            trong một môi trường minh bạch.
+            Nền tảng thương mại điện tử dành cho sản phẩm số, kết nối cộng đồng
+            người mua và nhà bán hàng trong một môi trường minh bạch.
           </p>
           <div className="mt-5 flex items-center gap-2">
             {socialLinks.map(({ icon: SocialIcon, label, href }) => (
@@ -55,11 +65,16 @@ export function Footer() {
 
         {Object.entries(footerLinks).map(([title, links]) => (
           <div key={title}>
-            <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-emerald-50">{title}</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-emerald-50">
+              {title}
+            </h2>
             <ul className="mt-4 space-y-2.5">
               {links.map(([label, href]) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-emerald-100/75 transition hover:text-white">
+                  <Link
+                    href={href}
+                    className="text-sm text-emerald-100/75 transition hover:text-white"
+                  >
                     {label}
                   </Link>
                 </li>
@@ -69,9 +84,12 @@ export function Footer() {
         ))}
 
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-emerald-50">Bản tin</h2>
+          <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-emerald-50">
+            Bản tin
+          </h2>
           <p className="mt-4 text-sm leading-6 text-emerald-100/75">
-            Nhận thông tin sản phẩm mới, ưu đãi và cập nhật quan trọng từ CommerceHub.
+            Nhận thông tin sản phẩm mới, ưu đãi và cập nhật quan trọng từ
+            CommerceHub.
           </p>
           <div className="mt-4 flex overflow-hidden rounded-lg bg-white">
             <label htmlFor="newsletter-email" className="sr-only">

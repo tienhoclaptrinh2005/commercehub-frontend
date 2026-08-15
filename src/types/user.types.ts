@@ -1,5 +1,5 @@
 export type UserStatus = "ACTIVE" | "BANNED" | "SUSPENDED";
-export type UserRole = "BUYER" | "SELLER" | "ADMIN";
+export type UserRole = "BUYER" | "SELLER" | "ADMIN" | "SUPER_ADMIN";
 
 export interface PublicUserProfile {
   username: string;
@@ -10,6 +10,7 @@ export interface PublicUserProfile {
   completedPurchaseCount: number;
   successfulSaleCount: number;
   roles: UserRole[];
+  shopId: number | null;
 }
 
 export interface UserProfile {

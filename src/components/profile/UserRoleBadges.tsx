@@ -17,9 +17,13 @@ const ROLE_PRESENTATION: Record<UserRole, { label: string; className: string }> 
     label: "ADMIN",
     className: "border-rose-200 bg-rose-50 text-rose-700",
   },
+  SUPER_ADMIN: {
+    label: "SUPER ADMIN",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+  },
 };
 
-const ROLE_ORDER: UserRole[] = ["BUYER", "SELLER", "ADMIN"];
+const ROLE_ORDER: UserRole[] = ["BUYER", "SELLER", "ADMIN", "SUPER_ADMIN"];
 
 export function UserRoleBadges({ roles = [] }: UserRoleBadgesProps) {
   const visibleRoles = ROLE_ORDER.filter((role) => roles.includes(role));
