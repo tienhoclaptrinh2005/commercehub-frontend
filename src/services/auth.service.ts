@@ -49,9 +49,14 @@ export const authService = {
     return unwrapAuthResponse(response.data);
   },
 
-  async logout(refreshToken: string): Promise<void> {
-    await api.post<ApiResponse<null>>("/api/v1/auth/logout", {
-      refreshToken,
-    });
+  async refresh(): Promise<AuthSession> {
+    const response = await api.post<ApiResponse<AuthResponse>>(
+      "/api/v1/auth/refresh-token",
+    );
+    return unwrapAuthResponse(response.data);
+  },
+
+  async logout(): Promise<void> {
+    await api.post<ApiResponse<null>>("/api/v1/auth/logout");
   },
 };

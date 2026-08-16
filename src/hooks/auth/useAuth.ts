@@ -10,6 +10,7 @@ export function useAuth() {
   const register = useAuthStore((state) => state.register);
   const logout = useAuthStore((state) => state.logout);
   const clearError = useAuthStore((state) => state.clearError);
+  const syncCurrentUser = useAuthStore((state) => state.syncCurrentUser);
 
   return {
     session,
@@ -23,5 +24,6 @@ export function useAuth() {
     register,
     logout,
     clearError,
+    syncCurrentUser,
   };
 }

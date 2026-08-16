@@ -10,21 +10,25 @@ export interface AuthUser {
   username: string;
   email: string;
   fullName: string;
+  roles: import("./user.types").UserRole[];
+  shopId: number | null;
+  shopStatus: import("./user.types").ShopStatus | null;
 }
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   userId: number;
   username: string;
   email: string;
   fullName: string;
+  roles: import("./user.types").UserRole[];
+  shopId: number | null;
+  shopStatus: import("./user.types").ShopStatus | null;
 }
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   user: AuthUser;
 }

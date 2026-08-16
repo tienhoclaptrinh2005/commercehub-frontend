@@ -9,6 +9,14 @@ import { buyerNavigation } from "./navigation";
 
 export function MobileNav() {
   const { user, isHydrated, isSubmitting, logout } = useAuth();
+  const shopAction = (() => {
+    if (user?.shopStatus === "PENDING") return { label: "Shop đang chờ duyệt", href: null };
+    if (user?.shopStatus === "REJECTED") return { label: "Shop đã bị từ chối", href: null };
+    if (user?.shopStatus === "ACTIVE") {
+      return { label: "Xem gian hàng", href: `/users/${encodeURIComponent(user.username)}` };
+    }
+    return { label: "Mở shop", href: user ? "/seller/shop/setup" : "/login" };
+  })();
 
   return (
     <details className="group lg:hidden">
@@ -41,13 +49,20 @@ export function MobileNav() {
             <ShoppingCart className="size-5" />
             Giỏ hàng
           </Link>
-          <Link
-            href="/seller/shop/setup"
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
-          >
-            <Store className="size-5" />
-            Mở shop
-          </Link>
+          {shopAction.href ? (
+            <Link
+              href={shopAction.href}
+              className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <Store className="size-5" />
+              {shopAction.label}
+            </Link>
+          ) : (
+            <span className="flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              <Store className="size-5" />
+              {shopAction.label}
+            </span>
+          )}
 
           {isHydrated && user ? (
             <div className="mt-2 flex items-center gap-3 rounded-lg bg-slate-50 p-3">

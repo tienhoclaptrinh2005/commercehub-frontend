@@ -30,6 +30,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 const refreshClient = axios.create({
@@ -38,6 +39,7 @@ const refreshClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 let refreshPromise: Promise<AuthSession> | null = null;
@@ -54,13 +56,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorBody>) => {
     const request = error.config as RetryableRequest | undefined;
-    const session = readAuthSession();
 
     if (
       error.response?.status !== 401 ||
       !request ||
       request._retry ||
-      !session?.refreshToken ||
       request.url?.includes("/api/v1/auth/")
     ) {
       return Promise.reject(error);
@@ -70,9 +70,7 @@ api.interceptors.response.use(
 
     try {
       refreshPromise ??= refreshClient
-        .post<ApiResponse<AuthResponse>>("/api/v1/auth/refresh-token", {
-          refreshToken: session.refreshToken,
-        })
+        .post<ApiResponse<AuthResponse>>("/api/v1/auth/refresh-token")
         .then((response) => {
           if (!response.data.success || !response.data.data) {
             throw new Error(response.data.message || "Không thể làm mới phiên đăng nhập");

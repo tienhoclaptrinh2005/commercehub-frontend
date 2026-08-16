@@ -9,19 +9,28 @@ import type { AuthSession } from "@/types";
 export function AppProviders({ children }: { children: ReactNode }) {
   const hydrate = useAuthStore((state) => state.hydrate);
   const syncSession = useAuthStore((state) => state.syncSession);
+  const syncCurrentUser = useAuthStore((state) => state.syncCurrentUser);
 
   useEffect(() => {
-    hydrate();
+    void hydrate();
 
     const handleSessionChange = (event: Event) => {
       syncSession((event as CustomEvent<AuthSession | null>).detail);
     };
 
     window.addEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+    const handleFocus = () => void syncCurrentUser();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void syncCurrentUser();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [hydrate, syncSession]);
+  }, [hydrate, syncCurrentUser, syncSession]);
 
   return children;
 }

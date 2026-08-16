@@ -1,5 +1,13 @@
 export type UserStatus = "ACTIVE" | "BANNED" | "SUSPENDED";
 export type UserRole = "BUYER" | "SELLER" | "ADMIN" | "SUPER_ADMIN";
+export type ShopStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "REJECTED"
+  | "INACTIVE"
+  | "SUSPENDED"
+  | "BANNED"
+  | "CLOSED";
 
 export interface PublicUserProfile {
   username: string;
@@ -31,6 +39,8 @@ export interface UserProfile {
   /** TODO BACKEND: trả false sau khi người dùng đã đổi username một lần. */
   usernameChangeAllowed?: boolean;
   roles: UserRole[];
+  shopId: number | null;
+  shopStatus: ShopStatus | null;
 }
 
 export interface UserLevel {

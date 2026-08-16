@@ -1,3 +1,5 @@
+"use client";
+
 import {
   CircleHelp,
   Clock3,
@@ -12,11 +14,26 @@ import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 import { CategoryBar } from "./CategoryBar";
 import { MobileNav } from "./MobileNav";
 
 export function Header() {
+  const { user } = useAuth();
+  const shopAction = (() => {
+    if (user?.shopStatus === "PENDING") {
+      return { label: "Chờ duyệt", href: null };
+    }
+    if (user?.shopStatus === "REJECTED") {
+      return { label: "Đã từ chối", href: null };
+    }
+    if (user?.shopStatus === "ACTIVE") {
+      return { label: "Gian hàng", href: `/users/${encodeURIComponent(user.username)}` };
+    }
+    return { label: "Mở shop", href: user ? "/seller/shop/setup" : "/login" };
+  })();
+
   return (
     <header className="relative z-40 bg-white">
       <div className="hidden border-b border-slate-200 lg:block">
@@ -88,13 +105,20 @@ export function Header() {
                 </span>
                 Giỏ hàng
               </Link>
-              <Link
-                href="/seller/shop/setup"
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-bold text-emerald-950 transition hover:bg-emerald-400"
-              >
-                <Store className="size-4" />
-                Mở shop
-              </Link>
+              {shopAction.href ? (
+                <Link
+                  href={shopAction.href}
+                  className="inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-bold text-emerald-950 transition hover:bg-emerald-400"
+                >
+                  <Store className="size-4" />
+                  {shopAction.label}
+                </Link>
+              ) : (
+                <span className="inline-flex h-11 items-center gap-2 rounded-lg bg-amber-100 px-4 text-sm font-bold text-amber-800">
+                  <Store className="size-4" />
+                  {shopAction.label}
+                </span>
+              )}
               <AuthStatus />
             </div>
 
@@ -143,4 +167,3 @@ export function Header() {
     </header>
   );
 }
-

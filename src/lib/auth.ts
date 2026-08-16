@@ -1,9 +1,15 @@
 import type { AuthResponse, AuthSession } from "@/types";
 
-const AUTH_STORAGE_KEY = "commercehub.auth.session";
 const DEVICE_STORAGE_KEY = "commercehub.device.id";
+const LEGACY_AUTH_STORAGE_KEY = "commercehub.auth.session";
+let inMemorySession: AuthSession | null = null;
 
 export const AUTH_SESSION_CHANGED_EVENT = "commercehub:auth-session-changed";
+
+export function clearLegacyAuthStorage(): void {
+  if (!isBrowser()) return;
+  window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+}
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
@@ -12,44 +18,26 @@ function isBrowser(): boolean {
 export function sessionFromAuthResponse(response: AuthResponse): AuthSession {
   return {
     accessToken: response.accessToken,
-    refreshToken: response.refreshToken,
     tokenType: response.tokenType || "Bearer",
     user: {
       id: response.userId,
       username: response.username,
       email: response.email,
       fullName: response.fullName,
+      roles: response.roles ?? [],
+      shopId: response.shopId ?? null,
+      shopStatus: response.shopStatus ?? null,
     },
   };
 }
 
 export function readAuthSession(): AuthSession | null {
-  if (!isBrowser()) return null;
-
-  try {
-    const rawSession = window.localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!rawSession) return null;
-
-    const session = JSON.parse(rawSession) as AuthSession;
-    if (
-      !session.accessToken ||
-      !session.refreshToken ||
-      !session.user?.email
-    ) {
-      clearAuthSession();
-      return null;
-    }
-
-    return session;
-  } catch {
-    clearAuthSession();
-    return null;
-  }
+  return inMemorySession;
 }
 
 export function saveAuthSession(session: AuthSession): void {
+  inMemorySession = session;
   if (!isBrowser()) return;
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
   window.dispatchEvent(
     new CustomEvent<AuthSession | null>(AUTH_SESSION_CHANGED_EVENT, {
       detail: session,
@@ -58,8 +46,8 @@ export function saveAuthSession(session: AuthSession): void {
 }
 
 export function clearAuthSession(): void {
+  inMemorySession = null;
   if (!isBrowser()) return;
-  window.localStorage.removeItem(AUTH_STORAGE_KEY);
   window.dispatchEvent(
     new CustomEvent<AuthSession | null>(AUTH_SESSION_CHANGED_EVENT, {
       detail: null,
