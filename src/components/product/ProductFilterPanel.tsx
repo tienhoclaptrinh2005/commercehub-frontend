@@ -190,7 +190,7 @@ export function ProductFilterPanel({
           <select
             id="product-rating"
             disabled
-            title="Backend chưa trả điểm đánh giá trong API danh sách sản phẩm"
+            title="Backend chưa hỗ trợ điều kiện lọc sản phẩm theo điểm đánh giá"
             className="mt-4 h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-400 outline-none disabled:cursor-not-allowed"
           >
             <option>Chưa có dữ liệu đánh giá</option>

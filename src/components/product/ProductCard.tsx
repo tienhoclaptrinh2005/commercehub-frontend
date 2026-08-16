@@ -34,18 +34,6 @@ function formatPriceRange(product: ProductSummary): string {
   return `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`;
 }
 
-function getDurationLabel(product: ProductSummary): string | null {
-  const durations = (product.variants ?? [])
-    .filter((variant) => variant.status === "ACTIVE" && variant.durationDays)
-    .map((variant) => Number(variant.durationDays));
-
-  if (durations.length === 0) return null;
-
-  const minDuration = Math.min(...durations);
-  const maxDuration = Math.max(...durations);
-  return minDuration === maxDuration ? `${minDuration} ngày` : `${minDuration}–${maxDuration} ngày`;
-}
-
 function getProductTypeLabel(productType: string): string {
   if (productType === "ACCOUNT") return "Tài khoản";
   if (productType === "OTHER") return "Sản phẩm";
@@ -56,13 +44,22 @@ function getSellerInitial(shopName: string): string {
   return shopName.trim().charAt(0).toUpperCase() || "S";
 }
 
+function formatAverageRating(value: number | null | undefined): string {
+  const rating = Number(value ?? 5);
+  if (!Number.isFinite(rating)) return "5.0";
+  return Math.max(0, Math.min(5, rating)).toFixed(1);
+}
+
 export function ProductCard({
   product,
   sellerHandle,
   variant = "profile",
 }: ProductCardProps) {
   const imageUrl = product.thumbnailUrl;
-  const durationLabel = getDurationLabel(product);
+  const sellerUsername = sellerHandle || product.sellerUsername;
+  const sellerProfileHref = sellerUsername
+    ? `/users/${encodeURIComponent(sellerUsername)}`
+    : null;
 
   if (variant === "catalog") {
     return (
@@ -110,12 +107,30 @@ export function ProductCard({
 
           <div className="mt-2.5 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
             <span className="text-[10px] uppercase">Người bán:</span>
-            <span className="grid size-4 shrink-0 place-items-center rounded-full bg-emerald-600 text-[8px] font-bold text-white">
-              {getSellerInitial(product.shopName || "Shop")}
+            <span className="grid size-5 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[8px] font-bold text-white">
+              {product.sellerAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.sellerAvatarUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                getSellerInitial(product.shopName || "Shop")
+              )}
             </span>
-            <span className="truncate font-semibold text-slate-700">
-              {product.shopName || "Người bán"}
-            </span>
+            {sellerProfileHref ? (
+              <Link
+                href={sellerProfileHref}
+                className="truncate font-semibold text-slate-700 transition hover:text-emerald-700 hover:underline"
+              >
+                {product.shopName || `@${sellerUsername}`}
+              </Link>
+            ) : (
+              <span className="truncate font-semibold text-slate-700">
+                {product.shopName || "Người bán"}
+              </span>
+            )}
           </div>
 
           <div className="mt-4 grid grid-cols-3 rounded-lg bg-slate-50 px-2 py-2.5 text-center">
@@ -126,10 +141,11 @@ export function ProductCard({
                 Đánh giá
               </p>
               <p
-                className="mt-1 inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-400"
-                title="Backend chưa trả điểm đánh giá sản phẩm"
+                className="mt-1 inline-flex items-center justify-center gap-1 text-xs font-bold text-amber-500"
+                title={`${new Intl.NumberFormat("vi-VN").format(product.reviewCount ?? 0)} đánh giá`}
               >
-                <Star className="size-3" />—
+                <Star className="size-3 fill-current" />
+                {formatAverageRating(product.averageRating)}
               </p>
             </div>
           </div>
@@ -200,19 +216,30 @@ export function ProductCard({
             <PackageCheck className="size-3.5 text-emerald-600" />
             Đã bán {new Intl.NumberFormat("vi-VN").format(product.soldCount ?? 0)}
           </span>
-          {durationLabel ? (
-            <>
-              <span className="size-1 rounded-full bg-slate-300" />
-              <span>{durationLabel}</span>
-            </>
-          ) : null}
+          <span className="size-1 rounded-full bg-slate-300" />
+          <span
+            className="inline-flex items-center gap-1 font-semibold text-amber-500"
+            title={`${new Intl.NumberFormat("vi-VN").format(product.reviewCount ?? 0)} đánh giá`}
+          >
+            <Star className="size-3.5 fill-current" />
+            {formatAverageRating(product.averageRating)}
+          </span>
         </div>
 
         <p className="mt-2 truncate text-xs text-slate-500">
           Người bán:{" "}
-          <span className="font-semibold text-emerald-700">
-            {sellerHandle ? `@${sellerHandle}` : product.shopName}
-          </span>
+          {sellerProfileHref ? (
+            <Link
+              href={sellerProfileHref}
+              className="font-semibold text-emerald-700 transition hover:text-emerald-800 hover:underline"
+            >
+              {sellerUsername ? `@${sellerUsername}` : product.shopName}
+            </Link>
+          ) : (
+            <span className="font-semibold text-emerald-700">
+              {product.shopName || "Chưa cập nhật"}
+            </span>
+          )}
         </p>
 
         <p className="mt-auto pt-4 text-lg font-bold tracking-[-0.02em] text-emerald-700">

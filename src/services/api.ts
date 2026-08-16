@@ -44,6 +44,25 @@ const refreshClient = axios.create({
 
 let refreshPromise: Promise<AuthSession> | null = null;
 
+export function refreshAuthSession(): Promise<AuthSession> {
+  refreshPromise ??= refreshClient
+    .post<ApiResponse<AuthResponse>>("/api/v1/auth/refresh-token")
+    .then((response) => {
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.message || "Không thể làm mới phiên đăng nhập");
+      }
+
+      const refreshedSession = sessionFromAuthResponse(response.data.data);
+      saveAuthSession(refreshedSession);
+      return refreshedSession;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
 api.interceptors.request.use((config) => {
   const session = readAuthSession();
   if (session?.accessToken) {
@@ -69,22 +88,7 @@ api.interceptors.response.use(
     request._retry = true;
 
     try {
-      refreshPromise ??= refreshClient
-        .post<ApiResponse<AuthResponse>>("/api/v1/auth/refresh-token")
-        .then((response) => {
-          if (!response.data.success || !response.data.data) {
-            throw new Error(response.data.message || "Không thể làm mới phiên đăng nhập");
-          }
-
-          const refreshedSession = sessionFromAuthResponse(response.data.data);
-          saveAuthSession(refreshedSession);
-          return refreshedSession;
-        })
-        .finally(() => {
-          refreshPromise = null;
-        });
-
-      const refreshedSession = await refreshPromise;
+      const refreshedSession = await refreshAuthSession();
       request.headers.Authorization = `${refreshedSession.tokenType} ${refreshedSession.accessToken}`;
       return api(request);
     } catch (refreshError) {

@@ -3,6 +3,7 @@ import type {
   PageResponse,
   ProductDetail,
   ProductListFilters,
+  ProductReviewPage,
   ProductSummary,
 } from "@/types";
 
@@ -29,6 +30,16 @@ function unwrapProductPage(
 function unwrapProduct(response: ApiResponse<ProductDetail>): ProductDetail {
   if (!response.success || !response.data) {
     throw new Error(response.message || "Không nhận được thông tin sản phẩm");
+  }
+
+  return response.data;
+}
+
+function unwrapProductReviews(
+  response: ApiResponse<ProductReviewPage>,
+): ProductReviewPage {
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Không nhận được danh sách đánh giá");
   }
 
   return response.data;
@@ -72,5 +83,18 @@ export const productService = {
     );
 
     return unwrapProducts(response.data);
+  },
+
+  async getReviews(
+    productId: number,
+    page = 0,
+    size = 10,
+  ): Promise<ProductReviewPage> {
+    const response = await api.get<ApiResponse<ProductReviewPage>>(
+      `/api/v1/product-reviews/product/${productId}`,
+      { params: { page, size } },
+    );
+
+    return unwrapProductReviews(response.data);
   },
 };

@@ -8,7 +8,7 @@ import type {
   RegisterRequest,
 } from "@/types";
 
-import { api } from "./api";
+import { api, refreshAuthSession } from "./api";
 
 function unwrapAuthResponse(response: ApiResponse<AuthResponse>): AuthSession {
   if (!response.success || !response.data) {
@@ -50,10 +50,7 @@ export const authService = {
   },
 
   async refresh(): Promise<AuthSession> {
-    const response = await api.post<ApiResponse<AuthResponse>>(
-      "/api/v1/auth/refresh-token",
-    );
-    return unwrapAuthResponse(response.data);
+    return refreshAuthSession();
   },
 
   async logout(): Promise<void> {

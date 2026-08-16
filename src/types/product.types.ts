@@ -24,6 +24,8 @@ export interface ProductSummary {
   id: number;
   shopId: number;
   shopName: string;
+  sellerUsername: string;
+  sellerAvatarUrl: string | null;
   categoryId: number;
   categoryName: string;
   name: string;
@@ -34,6 +36,8 @@ export interface ProductSummary {
   deliveryType: string;
   status: ProductStatus;
   soldCount: number;
+  averageRating: number;
+  reviewCount: number;
   thumbnailUrl: string | null;
   stockCount: number;
   createdAt: string;
@@ -46,6 +50,8 @@ export interface ProductDetail {
   id: number;
   shopId: number;
   shopName: string;
+  sellerUsername: string;
+  sellerAvatarUrl: string | null;
   categoryId: number;
   categoryName: string;
   name: string;
@@ -57,11 +63,35 @@ export interface ProductDetail {
   status: ProductStatus;
   soldCount: number;
   failedDisputeCount: number;
+  averageRating: number;
+  reviewCount: number;
   thumbnailUrl: string | null;
   createdAt: string;
   stockCount: number;
   variants: ProductVariant[];
   preOrderConfig: PreOrderConfig | null;
+}
+
+export interface ProductReview {
+  id: number;
+  productId: number;
+  userId: number;
+  reviewerName: string;
+  reviewerAvatar: string | null;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export interface ProductReviewPage {
+  content: ProductReview[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 export interface ProductListFilters {

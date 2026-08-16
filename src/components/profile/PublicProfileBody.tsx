@@ -101,14 +101,6 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
                     <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
                       Thành viên cấp {profile.userLevel ?? 1}
                     </span>
-                    {profile.sellerEnabled ? (
-                      <>
-                        <span className="size-1 rounded-full bg-slate-300" />
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
-                          Có thể bán hàng
-                        </span>
-                      </>
-                    ) : null}
                     {profile.statusLabel ? (
                       <>
                         <span className="size-1 rounded-full bg-slate-300" />
