@@ -7,60 +7,57 @@ import {
   Search,
   ShieldCheck,
   ShoppingCart,
-  Store,
   WalletCards,
 } from "lucide-react";
 import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
-import { useAuth } from "@/hooks/auth/useAuth";
 
 import { CategoryBar } from "./CategoryBar";
 import { MobileNav } from "./MobileNav";
 
 export function Header() {
-  const { user } = useAuth();
-  const shopAction = (() => {
-    if (user?.shopStatus === "PENDING") {
-      return { label: "Chờ duyệt", href: null };
-    }
-    if (user?.shopStatus === "REJECTED") {
-      return { label: "Đã từ chối", href: null };
-    }
-    if (user?.shopStatus === "ACTIVE") {
-      return { label: "Gian hàng", href: `/users/${encodeURIComponent(user.username)}` };
-    }
-    return { label: "Mở shop", href: user ? "/seller/shop/setup" : "/login" };
-  })();
-
   return (
     <header className="relative z-40 bg-white">
       <div className="hidden border-b border-slate-200 lg:block">
         <div className="mx-auto flex h-10 max-w-[1200px] items-center justify-between px-6 text-xs text-slate-600">
           <div className="flex items-center gap-5">
-            <span className="font-semibold text-slate-800">CommerceHub Digital</span>
+            <span className="font-semibold text-slate-800">
+              CommerceHub Digital
+            </span>
             <span className="flex items-center gap-1.5">
               <Clock3 className="size-3.5" />
               08h00 - 22h00 mỗi ngày
             </span>
-            <Link href="/contact" className="transition hover:text-emerald-700">
-              Liên hệ
-            </Link>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">2FA</span>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">Giao dịch an toàn</span>
+            <span className="rounded bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
+              2FA
+            </span>
+            <span className="rounded bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
+              Giao dịch an toàn
+            </span>
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/help" className="flex items-center gap-1.5 transition hover:text-emerald-700">
+            <Link
+              href="/contact"
+              className="flex items-center gap-1.5 transition hover:text-emerald-700"
+            >
               <CircleHelp className="size-3.5" />
               Hỗ trợ
             </Link>
-            <Link href="/wallet/deposit" className="flex items-center gap-1.5 transition hover:text-emerald-700">
+            <Link
+              href="/wallet/deposit"
+              className="flex items-center gap-1.5 transition hover:text-emerald-700"
+            >
               <WalletCards className="size-3.5" />
               Nạp tiền
             </Link>
             <span className="font-semibold text-slate-900">0đ</span>
-            <Link href="/chat" className="transition hover:text-emerald-700" aria-label="Tin nhắn">
+            <Link
+              href="/chat"
+              className="transition hover:text-emerald-700"
+              aria-label="Tin nhắn"
+            >
               <MessageSquareText className="size-4" />
             </Link>
           </div>
@@ -72,7 +69,11 @@ export function Header() {
           <div className="flex items-center justify-between gap-4 lg:grid lg:grid-cols-[210px_minmax(300px,1fr)_auto]">
             <BrandLogo />
 
-            <form action="/search" className="relative hidden md:block" role="search">
+            <form
+              action="/search"
+              className="relative hidden md:block"
+              role="search"
+            >
               <label htmlFor="site-search" className="sr-only">
                 Tìm kiếm sản phẩm
               </label>
@@ -105,20 +106,6 @@ export function Header() {
                 </span>
                 Giỏ hàng
               </Link>
-              {shopAction.href ? (
-                <Link
-                  href={shopAction.href}
-                  className="inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-bold text-emerald-950 transition hover:bg-emerald-400"
-                >
-                  <Store className="size-4" />
-                  {shopAction.label}
-                </Link>
-              ) : (
-                <span className="inline-flex h-11 items-center gap-2 rounded-lg bg-amber-100 px-4 text-sm font-bold text-amber-800">
-                  <Store className="size-4" />
-                  {shopAction.label}
-                </span>
-              )}
               <AuthStatus />
             </div>
 
@@ -134,7 +121,11 @@ export function Header() {
             </div>
           </div>
 
-          <form action="/search" className="relative mt-4 md:hidden" role="search">
+          <form
+            action="/search"
+            className="relative mt-4 md:hidden"
+            role="search"
+          >
             <label htmlFor="mobile-site-search" className="sr-only">
               Tìm kiếm sản phẩm
             </label>

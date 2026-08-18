@@ -21,8 +21,7 @@ const footerLinks = {
     ["Tin tức", "/news"],
     ["Giỏ hàng", "/cart"],
     ["Câu hỏi thường gặp", "/help"],
-    ["Chương trình tiếp thị liên kết", "/affiliate"],
-    ["API Docs", "/docs"],
+    ["Liên hệ", "/contact"],
   ],
 } as const;
 

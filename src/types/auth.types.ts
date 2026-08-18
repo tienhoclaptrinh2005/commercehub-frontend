@@ -10,6 +10,7 @@ export interface AuthUser {
   username: string;
   email: string;
   fullName: string;
+  avatarUrl: string | null;
   roles: import("./user.types").UserRole[];
   shopId: number | null;
   shopStatus: import("./user.types").ShopStatus | null;
@@ -22,6 +23,7 @@ export interface AuthResponse {
   username: string;
   email: string;
   fullName: string;
+  avatarUrl?: string | null;
   roles: import("./user.types").UserRole[];
   shopId: number | null;
   shopStatus: import("./user.types").ShopStatus | null;

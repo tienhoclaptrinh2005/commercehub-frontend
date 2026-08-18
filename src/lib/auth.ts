@@ -24,6 +24,7 @@ export function sessionFromAuthResponse(response: AuthResponse): AuthSession {
       username: response.username,
       email: response.email,
       fullName: response.fullName,
+      avatarUrl: response.avatarUrl ?? null,
       roles: response.roles ?? [],
       shopId: response.shopId ?? null,
       shopStatus: response.shopStatus ?? null,

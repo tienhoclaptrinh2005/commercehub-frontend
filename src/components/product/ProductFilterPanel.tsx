@@ -1,7 +1,12 @@
 "use client";
 
 import { RotateCcw, Search } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
 import type { CategorySummary } from "@/types";
 
@@ -26,6 +31,79 @@ const EMPTY_FILTERS: CatalogFilterValues = {
   minPrice: "",
   maxPrice: "",
 };
+
+const MAX_FILTER_PRICE = 500_000_000;
+const PRICE_FORMATTER = new Intl.NumberFormat("vi-VN");
+
+function normalizePriceInput(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (!digits) return "";
+
+  const normalizedDigits = digits.replace(/^0+(?=\d)/, "");
+  return String(Math.min(Number(normalizedDigits), MAX_FILTER_PRICE));
+}
+
+function formatPriceInput(value: string): string {
+  return value === "" ? "" : PRICE_FORMATTER.format(Number(value));
+}
+
+function preventInvalidPriceKey(event: KeyboardEvent<HTMLInputElement>) {
+  const controlKeys = [
+    "Backspace",
+    "Delete",
+    "Tab",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "Enter",
+  ];
+
+  if (event.ctrlKey || event.metaKey || controlKeys.includes(event.key)) return;
+  if (!/^\d$/.test(event.key)) event.preventDefault();
+}
+
+interface CurrencyFilterInputProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function CurrencyFilterInput({
+  label,
+  placeholder,
+  value,
+  onChange,
+}: CurrencyFilterInputProps) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    onChange(normalizePriceInput(event.target.value));
+  }
+
+  return (
+    <label className="min-w-0 flex-1">
+      <span className="sr-only">{label}</span>
+      <span className="relative block">
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={formatPriceInput(value)}
+          onChange={handleChange}
+          onKeyDown={preventInvalidPriceKey}
+          placeholder={placeholder}
+          className="h-10 w-full rounded-md border border-slate-200 py-2 pl-3 pr-7 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+        />
+        <span
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500"
+          aria-hidden="true"
+        >
+          đ
+        </span>
+      </span>
+    </label>
+  );
+}
 
 export function ProductFilterPanel({
   value,
@@ -54,7 +132,46 @@ export function ProductFilterPanel({
         onSubmit={handleSubmit}
         className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <fieldset>
+        <div>
+          <label htmlFor="product-keyword" className="text-base font-bold text-slate-950">
+            Tìm kiếm sản phẩm
+          </label>
+          <input
+            id="product-keyword"
+            type="search"
+            value={draft.keyword}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                keyword: event.target.value,
+              }))
+            }
+            placeholder="Từ khóa"
+            className="mt-4 h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+          />
+          <button
+            type="submit"
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20"
+          >
+            <Search className="size-4" />
+            Tìm kiếm
+          </button>
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(EMPTY_FILTERS);
+                onApply(EMPTY_FILTERS);
+              }}
+              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-emerald-700"
+            >
+              <RotateCcw className="size-3.5" />
+              Xóa bộ lọc
+            </button>
+          ) : null}
+        </div>
+
+        <fieldset className="mt-7 border-t border-slate-100 pt-6">
           <legend className="text-base font-bold text-slate-950">Danh mục</legend>
           <div className="mt-4 space-y-3">
             <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
@@ -140,46 +257,26 @@ export function ProductFilterPanel({
         <fieldset className="mt-7 border-t border-slate-100 pt-6">
           <legend className="text-base font-bold text-slate-950">Giá</legend>
           <div className="mt-4 flex items-center gap-2">
-            <label className="min-w-0 flex-1">
-              <span className="sr-only">Giá tối thiểu</span>
-              <input
-                type="number"
-                min="0"
-                step="1000"
-                inputMode="numeric"
-                value={draft.minPrice}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    minPrice: event.target.value,
-                  }))
-                }
-                placeholder="Tối thiểu"
-                className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-              />
-            </label>
+            <CurrencyFilterInput
+              label="Giá tối thiểu"
+              placeholder="Tối thiểu"
+              value={draft.minPrice}
+              onChange={(minPrice) =>
+                setDraft((current) => ({ ...current, minPrice }))
+              }
+            />
             <span className="text-slate-400">–</span>
-            <label className="min-w-0 flex-1">
-              <span className="sr-only">Giá tối đa</span>
-              <input
-                type="number"
-                min="0"
-                step="1000"
-                inputMode="numeric"
-                value={draft.maxPrice}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    maxPrice: event.target.value,
-                  }))
-                }
-                placeholder="Tối đa"
-                className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-              />
-            </label>
+            <CurrencyFilterInput
+              label="Giá tối đa"
+              placeholder="Tối đa"
+              value={draft.maxPrice}
+              onChange={(maxPrice) =>
+                setDraft((current) => ({ ...current, maxPrice }))
+              }
+            />
           </div>
           <p className="mt-2 text-[11px] leading-4 text-slate-400">
-            Lọc giá áp dụng cho các sản phẩm trên trang hiện tại.
+            Từ 0đ đến tối đa 500.000.000đ.
           </p>
         </fieldset>
 
@@ -197,44 +294,6 @@ export function ProductFilterPanel({
           </select>
         </div>
 
-        <div className="mt-7 border-t border-slate-100 pt-6">
-          <label htmlFor="product-keyword" className="text-base font-bold text-slate-950">
-            Tìm kiếm sản phẩm
-          </label>
-          <input
-            id="product-keyword"
-            type="search"
-            value={draft.keyword}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                keyword: event.target.value,
-              }))
-            }
-            placeholder="Từ khóa"
-            className="mt-4 h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-          />
-          <button
-            type="submit"
-            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20"
-          >
-            <Search className="size-4" />
-            Tìm kiếm
-          </button>
-          {hasFilters ? (
-            <button
-              type="button"
-              onClick={() => {
-                setDraft(EMPTY_FILTERS);
-                onApply(EMPTY_FILTERS);
-              }}
-              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-emerald-700"
-            >
-              <RotateCcw className="size-3.5" />
-              Xóa bộ lọc
-            </button>
-          ) : null}
-        </div>
       </form>
     </aside>
   );

@@ -57,6 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           ...currentSession.user,
           username: profile.username ?? currentSession.user.username,
           fullName: profile.fullName,
+          avatarUrl: profile.avatarUrl,
           roles: profile.roles ?? [],
           shopId: profile.shopId ?? null,
           shopStatus: profile.shopStatus ?? null,
@@ -79,7 +80,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const session = await authService.login(credentials);
       saveAuthSession(session);
       set({ session, isHydrated: true });
-      return session;
+      await get().syncCurrentUser();
+      return get().session ?? session;
     } catch (error) {
       set({ error: getApiErrorMessage(error) });
       throw error;
@@ -94,7 +96,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const session = await authService.googleLogin(credential);
       saveAuthSession(session);
       set({ session, isHydrated: true });
-      return session;
+      await get().syncCurrentUser();
+      return get().session ?? session;
     } catch (error) {
       set({
         error: getApiErrorMessage(error, "Đăng nhập bằng Google thất bại."),
@@ -111,7 +114,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const session = await authService.register(payload);
       saveAuthSession(session);
       set({ session, isHydrated: true });
-      return session;
+      await get().syncCurrentUser();
+      return get().session ?? session;
     } catch (error) {
       set({ error: getApiErrorMessage(error) });
       throw error;

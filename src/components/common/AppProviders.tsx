@@ -12,7 +12,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const syncCurrentUser = useAuthStore((state) => state.syncCurrentUser);
 
   useEffect(() => {
-    void hydrate();
+    const initializeAuth = async () => {
+      await hydrate();
+      await syncCurrentUser();
+    };
+
+    void initializeAuth();
 
     const handleSessionChange = (event: Event) => {
       syncSession((event as CustomEvent<AuthSession | null>).detail);

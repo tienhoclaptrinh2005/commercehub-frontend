@@ -81,6 +81,10 @@ export function ProfileEditForm() {
         ...session.user,
         username: nextProfile.username || session.user.username,
         fullName: nextProfile.fullName,
+        avatarUrl: nextProfile.avatarUrl,
+        roles: nextProfile.roles,
+        shopId: nextProfile.shopId,
+        shopStatus: nextProfile.shopStatus,
       },
     });
   };
@@ -151,6 +155,7 @@ export function ProfileEditForm() {
         avatarUrl: avatarUrl.trim(),
       });
       setProfile(nextProfile);
+      syncHeaderIdentity(nextProfile);
       resetAvatar({ avatarUrl: nextProfile.avatarUrl || "" });
       setAvatarNotice({
         type: "success",
