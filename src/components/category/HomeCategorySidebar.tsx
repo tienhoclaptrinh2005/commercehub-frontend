@@ -42,9 +42,15 @@ export function HomeCategorySidebar() {
 
       <nav className="py-2" aria-label="Danh mục sản phẩm">
         {isLoading ? (
-          <div className="space-y-3 px-4 py-2" aria-label="Đang tải danh mục sản phẩm">
+          <div
+            className="space-y-3 px-4 py-2"
+            aria-label="Đang tải danh mục sản phẩm"
+          >
             {Array.from({ length: 6 }, (_, index) => (
-              <div key={index} className="h-6 animate-pulse rounded bg-slate-100" />
+              <div
+                key={index}
+                className="h-6 animate-pulse rounded bg-slate-100"
+              />
             ))}
           </div>
         ) : error ? (
@@ -86,7 +92,9 @@ export function HomeCategorySidebar() {
                     ) : (
                       <Icon className="size-4 shrink-0 text-slate-500 transition group-hover:text-emerald-600" />
                     )}
-                    <span className="min-w-0 flex-1 truncate">{category.name}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {category.name}
+                    </span>
                     <ChevronRight className="size-3.5 shrink-0 text-slate-400" />
                   </Link>
 
@@ -119,7 +127,7 @@ export function HomeCategorySidebar() {
             <ChevronRight className="size-3.5 text-slate-400" />
           </Link>
           <Link
-            href="/help"
+            href="/contact"
             className="group flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
           >
             <CircleHelp className="size-4 text-slate-500 group-hover:text-emerald-600" />

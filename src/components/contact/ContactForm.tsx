@@ -44,7 +44,8 @@ export function ContactForm() {
           Gửi tin nhắn cho chúng tôi
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Điền thông tin bên dưới, đội ngũ hỗ trợ sẽ phản hồi trong thời gian sớm nhất.
+          Điền thông tin bên dưới, đội ngũ hỗ trợ sẽ phản hồi trong thời gian
+          sớm nhất.
         </p>
       </div>
 
@@ -122,7 +123,10 @@ export function ContactForm() {
           />
           <span>
             Tôi đã đọc và đồng ý với{" "}
-            <Link href="/terms" className="font-semibold text-emerald-700 hover:text-emerald-800">
+            <Link
+              href="/terms"
+              className="font-semibold text-emerald-700 hover:text-emerald-800"
+            >
               Điều khoản dịch vụ
             </Link>
             .
@@ -152,16 +156,22 @@ export function ContactForm() {
             </span>
             <span className="flex shrink-0 flex-col items-center text-emerald-700">
               <ShieldCheck className="size-7" />
-              <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wide">Captcha</span>
+              <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wide">
+                Captcha
+              </span>
             </span>
           </label>
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            CAPTCHA hiện chỉ là giao diện. Trước khi đưa lên production cần tích hợp dịch vụ xác minh thật ở cả frontend và backend.
+            CAPTCHA hiện chỉ là giao diện. Trước khi đưa lên production cần tích
+            hợp dịch vụ xác minh thật ở cả frontend và backend.
           </p>
         </div>
 
         {status === "error" ? (
-          <p className="rounded-lg bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700" role="alert">
+          <p
+            className="rounded-lg bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700"
+            role="alert"
+          >
             Vui lòng hoàn thành ô kiểm tra CAPTCHA mô phỏng.
           </p>
         ) : null}
@@ -173,7 +183,8 @@ export function ContactForm() {
           >
             <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
             <p>
-              Tin nhắn demo đã được ghi nhận. Hiện tại dữ liệu chưa được gửi hoặc lưu vào backend.
+              Tin nhắn demo đã được ghi nhận. Hiện tại dữ liệu chưa được gửi
+              hoặc lưu vào backend.
             </p>
           </div>
         ) : null}
