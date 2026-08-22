@@ -54,7 +54,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     label: "Ví & tài chính",
     href: "/seller/wallet",
     icon: WalletCards,
-    available: false,
+    available: true,
   },
   {
     label: "Phí sàn",
