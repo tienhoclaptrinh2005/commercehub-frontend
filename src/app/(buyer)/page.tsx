@@ -1,60 +1,15 @@
-import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
   ChevronRight,
-  Heart,
   KeyRound,
   Megaphone,
-  SearchCheck,
   ShieldCheck,
   Sparkles,
-  Video,
 } from "lucide-react";
 import Link from "next/link";
 
 import { HomeCategorySidebar } from "@/components/category/HomeCategorySidebar";
-
-const products: Array<{
-  title: string;
-  price: string;
-  eyebrow: string;
-  href: string;
-  icon: LucideIcon;
-  style: string;
-}> = [
-  {
-    title: "Tài khoản Facebook Ads",
-    price: "250.000₫",
-    eyebrow: "Tài khoản quảng cáo",
-    href: "/products/facebook-ads",
-    icon: Megaphone,
-    style: "from-blue-700 via-blue-600 to-cyan-500",
-  },
-  {
-    title: "Công cụ SEO Pro",
-    price: "250.000₫",
-    eyebrow: "Web & Tools",
-    href: "/products/seo-pro",
-    icon: SearchCheck,
-    style: "from-indigo-700 via-violet-600 to-fuchsia-500",
-  },
-  {
-    title: "Dịch vụ tăng tương tác",
-    price: "240.000₫",
-    eyebrow: "Tương tác mạng xã hội",
-    href: "/products/tang-tuong-tac",
-    icon: Heart,
-    style: "from-rose-600 via-pink-500 to-orange-400",
-  },
-  {
-    title: "Tài khoản TikTok Ads",
-    price: "250.000₫",
-    eyebrow: "Tài khoản quảng cáo",
-    href: "/products/tiktok-ads",
-    icon: Video,
-    style: "from-slate-950 via-slate-800 to-emerald-600",
-  },
-];
+import { LatestProducts } from "@/components/product/LatestProducts";
 
 const partners = ["CommerceHub Verified", "Digital Partner", "Workflows N8N", "Seller Pro", "Secure Pay"];
 
@@ -111,35 +66,7 @@ export default function BuyerHomePage() {
             </Link>
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {products.map(({ title, price, eyebrow, href, icon: Icon, style }) => (
-              <article
-                key={href}
-                className="group overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-slate-950/5"
-              >
-                <Link href={href} className="block p-1.5">
-                  <div className={`relative flex aspect-[1.65/1] items-end overflow-hidden rounded-md bg-gradient-to-br p-4 text-white ${style}`}>
-                    <div className="absolute right-3 top-3 grid size-10 place-items-center rounded-xl bg-white/15 backdrop-blur-sm">
-                      <Icon className="size-5" />
-                    </div>
-                    <p className="max-w-[85%] text-base font-bold leading-5">{eyebrow}</p>
-                  </div>
-                </Link>
-                <div className="px-3 pb-3 pt-2">
-                  <Link href={href} className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-slate-900 group-hover:text-emerald-700">
-                    {title}
-                  </Link>
-                  <p className="mt-1 text-sm font-bold text-slate-950">{price}</p>
-                  <Link
-                    href={href}
-                    className="mt-3 flex h-9 items-center justify-center rounded-md bg-emerald-500 text-sm font-bold text-emerald-950 transition hover:bg-emerald-400"
-                  >
-                    Mua ngay
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
+          <LatestProducts />
         </div>
       </section>
 

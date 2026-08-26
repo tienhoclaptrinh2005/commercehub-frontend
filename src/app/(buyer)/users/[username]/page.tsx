@@ -29,8 +29,8 @@ export default function PublicUserPage() {
     );
   }
 
-  // Theo luồng đã chốt, thành viên từ cấp 2 có khả năng bán hàng.
-  const sellerEnabled = Number(profile.userLevel ?? 1) >= 2;
+  // Quyền bán hàng phải lấy từ role thật; cấp độ không thay thế phân quyền.
+  const sellerEnabled = (profile.roles ?? []).includes("SELLER");
   const hasPublicShop = typeof profile.shopId === "number";
 
   return (

@@ -72,7 +72,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     label: "Khiếu nại",
     href: "/seller/disputes",
     icon: ShieldAlert,
-    available: false,
+    available: true,
   },
   {
     label: "Cấu hình",

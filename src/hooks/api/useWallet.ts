@@ -56,6 +56,19 @@ export function useWalletSummary() {
     };
   }, []);
 
+  useEffect(() => {
+    const refreshWallet = () => {
+      void refresh();
+    };
+    window.addEventListener("commercehub:wallet-updated", refreshWallet);
+    window.addEventListener("focus", refreshWallet);
+
+    return () => {
+      window.removeEventListener("commercehub:wallet-updated", refreshWallet);
+      window.removeEventListener("focus", refreshWallet);
+    };
+  }, [refresh]);
+
   return { wallet, isLoading, error, refresh };
 }
 

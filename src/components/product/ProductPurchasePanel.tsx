@@ -1,9 +1,13 @@
 "use client";
 
-import { Clock3, Minus, Plus, ShieldCheck, Tag } from "lucide-react";
+import { Clock3, LoaderCircle, Minus, Plus, ShieldCheck, Tag } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
+import { getApiErrorMessage } from "@/services/api";
+import { checkoutService } from "@/services/checkout.service";
 import type { ProductDetail } from "@/types";
 
 import { ProductVariantSelector } from "./ProductVariantSelector";
@@ -13,6 +17,8 @@ interface ProductPurchasePanelProps {
 }
 
 export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
+  const router = useRouter();
+  const { user, isHydrated } = useAuth();
   const activeVariants = useMemo(
     () =>
       (product.variants ?? [])
@@ -26,6 +32,9 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const [quantity, setQuantity] = useState(1);
   const [voucherCode, setVoucherCode] = useState("");
   const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(null);
   const selectedVariant = activeVariants.find(
     (variant) => variant.id === selectedVariantId,
   );
@@ -41,6 +50,38 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     setSelectedVariantId(variantId);
     setQuantity(1);
     setCheckoutNotice(null);
+    setCheckoutError(null);
+    setRetryIdempotencyKey(null);
+  }
+
+  async function checkout() {
+    if (!selectedVariant || unavailable || isCheckingOut) return;
+    if (!isHydrated || !user) {
+      router.push("/login");
+      return;
+    }
+
+    const idempotencyKey = retryIdempotencyKey ?? crypto.randomUUID();
+    setRetryIdempotencyKey(idempotencyKey);
+    setCheckoutError(null);
+    setCheckoutNotice(null);
+    setIsCheckingOut(true);
+    try {
+      const orderIds = await checkoutService.checkout({
+        items: [{ productVariantId: selectedVariant.id, quantity }],
+        paymentMethod: "WALLET",
+        idempotencyKey,
+      });
+      setCheckoutNotice(`Thanh toán thành công. Mã đơn: ${orderIds.map((id) => `#${id}`).join(", ")}.`);
+      setRetryIdempotencyKey(null);
+      window.dispatchEvent(new Event("commercehub:wallet-updated"));
+    } catch (requestError) {
+      // Giữ nguyên key cho nút thử lại: nếu response lần trước bị mất, backend
+      // sẽ trả lại đúng order cũ thay vì trừ tiền lần hai.
+      setCheckoutError(getApiErrorMessage(requestError, "Không thể thanh toán đơn hàng"));
+    } finally {
+      setIsCheckingOut(false);
+    }
   }
 
   return (
@@ -162,15 +203,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
 
       <button
         type="button"
-        disabled={unavailable}
-        onClick={() =>
-          setCheckoutNotice(
-            "Sản phẩm và phân loại đã được chọn. Luồng checkout sẽ được kết nối ở bước tiếp theo.",
-          )
-        }
+        disabled={unavailable || isCheckingOut}
+        onClick={() => void checkout()}
         className="mt-6 inline-flex h-13 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase tracking-[0.05em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
       >
-        {unavailable ? "Sản phẩm hiện không khả dụng" : "Thanh toán mua ngay"}
+        {isCheckingOut ? <><LoaderCircle className="mr-2 size-4 animate-spin" />Đang thanh toán...</> : unavailable ? "Sản phẩm hiện không khả dụng" : "Thanh toán mua ngay"}
       </button>
 
       {checkoutNotice ? (
@@ -179,6 +216,12 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           role="status"
         >
           {checkoutNotice}
+        </p>
+      ) : null}
+
+      {checkoutError ? (
+        <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2.5 text-sm leading-5 text-rose-700" role="alert">
+          {checkoutError} Bạn có thể bấm lại; hệ thống giữ nguyên mã chống trừ tiền hai lần.
         </p>
       ) : null}
 

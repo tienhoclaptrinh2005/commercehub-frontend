@@ -13,11 +13,15 @@ import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
+import { useWalletSummary } from "@/hooks/api/useWallet";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 import { CategoryBar } from "./CategoryBar";
 import { MobileNav } from "./MobileNav";
 
 export function Header() {
+  const { user, isHydrated } = useAuth();
+
   return (
     <header className="relative z-40 bg-white">
       <div className="hidden border-b border-slate-200 lg:block">
@@ -52,7 +56,11 @@ export function Header() {
               <WalletCards className="size-3.5" />
               Nạp tiền
             </Link>
-            <span className="font-semibold text-slate-900">0đ</span>
+            {isHydrated && user ? (
+              <HeaderWalletBalance key={user.id} />
+            ) : (
+              <span className="font-semibold text-slate-400">—</span>
+            )}
             <Link
               href="/chat"
               className="transition hover:text-emerald-700"
@@ -156,5 +164,24 @@ export function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+function HeaderWalletBalance() {
+  const { wallet, isLoading, error } = useWalletSummary();
+  const balance = isLoading && !wallet
+    ? "…"
+    : wallet
+      ? `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(wallet.availableBalance))}đ`
+      : "—";
+
+  return (
+    <span
+      className="font-semibold tabular-nums text-slate-900"
+      title={error ?? "Số dư khả dụng của tài khoản hiện tại"}
+      aria-label={`Số dư khả dụng: ${balance}`}
+    >
+      {balance}
+    </span>
   );
 }
