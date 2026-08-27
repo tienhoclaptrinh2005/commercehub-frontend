@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { useAppModal } from "@/components/ui/app-modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -31,14 +32,11 @@ import type { UserProfile } from "@/types";
 
 import { ProfileAvatar } from "./ProfileAvatar";
 
-type Notice = { type: "success" | "error"; message: string } | null;
-
 export function ProfileEditForm() {
+  const modal = useAppModal();
   const { profile, setProfile, isLoading, error, refresh } = useMyProfile();
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
-  const [avatarNotice, setAvatarNotice] = useState<Notice>(null);
 
   const {
     register,
@@ -97,27 +95,26 @@ export function ProfileEditForm() {
     const isChangingUsername = nextUsername !== currentUsername;
 
     if (isChangingUsername && isUsernameLocked) {
-      setNotice({
-        type: "error",
-        message:
-          "Username đã được đổi một lần và hiện không thể thay đổi thêm.",
+      modal.showError({
+        title: "Không thể đổi username",
+        description: "Username đã được đổi một lần và hiện không thể thay đổi thêm.",
+        confirmLabel: "Đã hiểu",
       });
       return;
     }
 
-    if (
-      isChangingUsername &&
-      !window.confirm(
-        `CẢNH BÁO: Bạn chỉ được đổi username một lần duy nhất.\n\n` +
-          `Username mới: @${nextUsername}\n\n` +
-          "Sau khi xác nhận, đường dẫn hồ sơ cũ có thể không còn sử dụng được. Bạn có chắc chắn muốn tiếp tục?",
-      )
-    ) {
-      return;
+    if (isChangingUsername) {
+      const confirmed = await modal.confirm({
+        title: "Xác nhận đổi username",
+        description: "Bạn chỉ được đổi username một lần duy nhất. Đường dẫn hồ sơ cũ có thể không còn sử dụng được.",
+        details: <p className="text-center font-black text-slate-950">Username mới: @{nextUsername}</p>,
+        confirmLabel: "Đổi username",
+        cancelLabel: "Hủy",
+      });
+      if (!confirmed) return;
     }
 
     setIsSaving(true);
-    setNotice(null);
 
     try {
       await userService.updateMyProfile({
@@ -131,16 +128,18 @@ export function ProfileEditForm() {
 
       const refreshedProfile = await refresh();
       if (refreshedProfile) syncHeaderIdentity(refreshedProfile);
-      setNotice({
-        type: "success",
-        message: isChangingUsername
+      modal.showSuccess({
+        title: "Cập nhật hồ sơ thành công",
+        description: isChangingUsername
           ? `Đã đổi username thành @${nextUsername}. Username hiện đã được khóa.`
           : "Thông tin hồ sơ đã được cập nhật.",
+        confirmLabel: "Hoàn tất",
       });
     } catch (requestError) {
-      setNotice({
-        type: "error",
-        message: getApiErrorMessage(requestError, "Không thể cập nhật hồ sơ"),
+      modal.showError({
+        title: "Không thể cập nhật hồ sơ",
+        description: getApiErrorMessage(requestError, "Không thể cập nhật hồ sơ"),
+        confirmLabel: "Đã hiểu",
       });
     } finally {
       setIsSaving(false);
@@ -149,7 +148,6 @@ export function ProfileEditForm() {
 
   const onAvatarSubmit = handleAvatarSubmit(async ({ avatarUrl }) => {
     setIsSavingAvatar(true);
-    setAvatarNotice(null);
     try {
       const nextProfile = await userService.updateAvatar({
         avatarUrl: avatarUrl.trim(),
@@ -157,17 +155,19 @@ export function ProfileEditForm() {
       setProfile(nextProfile);
       syncHeaderIdentity(nextProfile);
       resetAvatar({ avatarUrl: nextProfile.avatarUrl || "" });
-      setAvatarNotice({
-        type: "success",
-        message: "Ảnh đại diện đã được cập nhật.",
+      modal.showSuccess({
+        title: "Cập nhật ảnh thành công",
+        description: "Ảnh đại diện mới đã được áp dụng cho tài khoản của bạn.",
+        confirmLabel: "Hoàn tất",
       });
     } catch (requestError) {
-      setAvatarNotice({
-        type: "error",
-        message: getApiErrorMessage(
+      modal.showError({
+        title: "Không thể cập nhật ảnh đại diện",
+        description: getApiErrorMessage(
           requestError,
           "Không thể cập nhật ảnh đại diện",
         ),
+        confirmLabel: "Đã hiểu",
       });
     } finally {
       setIsSavingAvatar(false);
@@ -273,9 +273,6 @@ export function ProfileEditForm() {
                 {isSavingAvatar ? "Đang cập nhật..." : "Cập nhật ảnh"}
               </Button>
             </div>
-            {avatarNotice ? (
-              <NoticeBanner notice={avatarNotice} className="mt-4" />
-            ) : null}
           </form>
         </div>
       </section>
@@ -293,8 +290,6 @@ export function ProfileEditForm() {
             </p>
           </div>
         </div>
-
-        {notice ? <NoticeBanner notice={notice} className="mt-5" /> : null}
 
         <form
           onSubmit={onSubmit}
@@ -417,27 +412,6 @@ export function ProfileEditForm() {
           </div>
         </form>
       </section>
-    </div>
-  );
-}
-
-function NoticeBanner({
-  notice,
-  className = "",
-}: {
-  notice: Exclude<Notice, null>;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`${className} rounded-lg border px-4 py-3 text-sm font-semibold ${
-        notice.type === "success"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-rose-200 bg-rose-50 text-rose-700"
-      }`}
-      role={notice.type === "error" ? "alert" : "status"}
-    >
-      {notice.message}
     </div>
   );
 }

@@ -6,13 +6,13 @@ import {
   MessageSquareText,
   Search,
   ShieldCheck,
-  ShoppingCart,
   WalletCards,
 } from "lucide-react";
 import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
+import { CartIcon } from "@/components/cart/CartIcon";
 import { useWalletSummary } from "@/hooks/api/useWallet";
 import { useAuth } from "@/hooks/auth/useAuth";
 
@@ -102,29 +102,12 @@ export function Header() {
             </form>
 
             <div className="hidden items-center justify-end gap-4 lg:flex">
-              <Link
-                href="/cart"
-                className="group flex flex-col items-center gap-1 text-xs font-medium text-slate-700 transition hover:text-emerald-700"
-              >
-                <span className="relative">
-                  <ShoppingCart className="size-6" />
-                  <span className="absolute -right-2 -top-2 grid size-4 place-items-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
-                    0
-                  </span>
-                </span>
-                Giỏ hàng
-              </Link>
+              <CartIcon />
               <AuthStatus />
             </div>
 
             <div className="flex items-center gap-2 lg:hidden">
-              <Link
-                href="/cart"
-                className="grid size-11 place-items-center rounded-lg border border-slate-200 text-slate-700"
-                aria-label="Giỏ hàng"
-              >
-                <ShoppingCart className="size-5" />
-              </Link>
+              <CartIcon mobile />
               <MobileNav />
             </div>
           </div>
@@ -169,11 +152,12 @@ export function Header() {
 
 function HeaderWalletBalance() {
   const { wallet, isLoading, error } = useWalletSummary();
-  const balance = isLoading && !wallet
-    ? "…"
-    : wallet
-      ? `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(wallet.availableBalance))}đ`
-      : "—";
+  const balance =
+    isLoading && !wallet
+      ? "…"
+      : wallet
+        ? `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(wallet.availableBalance))}đ`
+        : "—";
 
   return (
     <span

@@ -1,13 +1,24 @@
 "use client";
 
-import { Clock3, LoaderCircle, Minus, Plus, ShieldCheck, Tag } from "lucide-react";
+import {
+  Clock3,
+  LoaderCircle,
+  MessageSquareText,
+  Minus,
+  Plus,
+  ShieldCheck,
+  ShoppingCart,
+  Tag,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { useAppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import { checkoutService } from "@/services/checkout.service";
+import { useCartStore } from "@/stores/cartStore";
 import type { ProductDetail } from "@/types";
 
 import { ProductVariantSelector } from "./ProductVariantSelector";
@@ -18,7 +29,9 @@ interface ProductPurchasePanelProps {
 
 export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const router = useRouter();
+  const modal = useAppModal();
   const { user, isHydrated } = useAuth();
+  const addCartItem = useCartStore((state) => state.addItem);
   const activeVariants = useMemo(
     () =>
       (product.variants ?? [])
@@ -31,26 +44,28 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   );
   const [quantity, setQuantity] = useState(1);
   const [voucherCode, setVoucherCode] = useState("");
-  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [buyerInputs, setBuyerInputs] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(null);
   const selectedVariant = activeVariants.find(
     (variant) => variant.id === selectedVariantId,
   );
   const isInstant = product.deliveryType === "INSTANT";
+  const isPreOrder = product.deliveryType === "PRE_ORDER";
   const availableStock = selectedVariant?.stockCount ?? 0;
+  const outOfStock = Boolean(
+    selectedVariant && isInstant && availableStock <= 0,
+  );
   const maxQuantity = isInstant ? Math.max(availableStock, 1) : 99;
   const unavailable =
     product.status !== "ACTIVE" ||
     !selectedVariant ||
-    (isInstant && availableStock <= 0);
+    outOfStock;
 
   function selectVariant(variantId: number) {
     setSelectedVariantId(variantId);
     setQuantity(1);
-    setCheckoutNotice(null);
-    setCheckoutError(null);
     setRetryIdempotencyKey(null);
   }
 
@@ -61,26 +76,105 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       return;
     }
 
+    const confirmed = await modal.confirm({
+      title: isPreOrder ? "Xác nhận đặt hàng" : "Xác nhận mua hàng",
+      description: isPreOrder
+        ? "Thông tin bạn nhập sẽ được gửi cho shop sau khi thanh toán."
+        : "Vui lòng kiểm tra lại sản phẩm trước khi thanh toán.",
+      details: (
+        <dl className="space-y-1.5">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Sản phẩm</dt>
+            <dd className="text-right font-bold text-slate-900">{product.name}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Phân loại</dt>
+            <dd className="text-right font-semibold">{selectedVariant.name}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Số lượng</dt>
+            <dd className="font-semibold">{quantity}</dd>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
+            <dt className="font-bold text-slate-700">Tổng tiền</dt>
+            <dd className="font-black text-emerald-700">
+              {formatCurrency(Number(selectedVariant.price) * quantity)}
+            </dd>
+          </div>
+        </dl>
+      ),
+      confirmLabel: isPreOrder ? "Đồng ý đặt hàng" : "Đồng ý mua",
+    });
+    if (!confirmed) return;
+
     const idempotencyKey = retryIdempotencyKey ?? crypto.randomUUID();
     setRetryIdempotencyKey(idempotencyKey);
-    setCheckoutError(null);
-    setCheckoutNotice(null);
     setIsCheckingOut(true);
     try {
       const orderIds = await checkoutService.checkout({
-        items: [{ productVariantId: selectedVariant.id, quantity }],
+        items: [{
+          productVariantId: selectedVariant.id,
+          quantity,
+          buyerInputs: isPreOrder ? buyerInputs.trim() || undefined : undefined,
+        }],
         paymentMethod: "WALLET",
         idempotencyKey,
       });
-      setCheckoutNotice(`Thanh toán thành công. Mã đơn: ${orderIds.map((id) => `#${id}`).join(", ")}.`);
       setRetryIdempotencyKey(null);
       window.dispatchEvent(new Event("commercehub:wallet-updated"));
+      modal.showSuccess({
+        title: isPreOrder ? "Đặt hàng thành công" : "Thanh toán thành công",
+        description: isPreOrder
+          ? "Đơn hàng đã được gửi tới shop và đang chờ shop xác nhận xử lý."
+          : "Thanh toán đã hoàn tất. Bạn có thể xem thông tin giao hàng trong lịch sử đơn hàng.",
+        details: (
+          <p className="text-center">
+            Mã đơn: <strong className="text-slate-950">{orderIds.map((id) => `#${id}`).join(", ")}</strong>
+          </p>
+        ),
+        confirmLabel: "Hoàn tất",
+      });
     } catch (requestError) {
       // Giữ nguyên key cho nút thử lại: nếu response lần trước bị mất, backend
       // sẽ trả lại đúng order cũ thay vì trừ tiền lần hai.
-      setCheckoutError(getApiErrorMessage(requestError, "Không thể thanh toán đơn hàng"));
+      modal.showError({
+        title: isPreOrder ? "Đặt hàng chưa thành công" : "Thanh toán thất bại",
+        description: getApiErrorMessage(requestError, "Không thể thanh toán đơn hàng"),
+        details: (
+          <p className="text-xs text-slate-500">
+            Bạn có thể thử lại. Hệ thống giữ nguyên mã chống trừ tiền hai lần.
+          </p>
+        ),
+        confirmLabel: "Đã hiểu",
+      });
     } finally {
       setIsCheckingOut(false);
+    }
+  }
+
+  async function addToCart() {
+    if (!selectedVariant || unavailable || isAddingToCart) return;
+    if (!isHydrated || !user) {
+      router.push("/login");
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      await addCartItem(user.id, selectedVariant.id, quantity);
+      modal.showSuccess({
+        title: "Đã thêm vào giỏ hàng",
+        description: `${product.name} — ${selectedVariant.name} đã được thêm vào giỏ.`,
+        confirmLabel: "Tiếp tục mua sắm",
+      });
+    } catch (requestError) {
+      modal.showError({
+        title: "Không thể thêm vào giỏ",
+        description: getApiErrorMessage(requestError, "Không thể thêm sản phẩm vào giỏ"),
+        confirmLabel: "Đã hiểu",
+      });
+    } finally {
+      setIsAddingToCart(false);
     }
   }
 
@@ -119,17 +213,48 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         />
       </div>
 
-      {product.deliveryType === "PRE_ORDER" && product.preOrderConfig ? (
+      {isPreOrder ? (
         <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
           <p className="flex items-center gap-2 font-bold">
             <Clock3 className="size-4" />
-            Xử lý trong tối đa {product.preOrderConfig.maxProcessingHours} giờ
+            Xử lý trong tối đa {product.preOrderConfig?.maxProcessingHours ?? 24} giờ
           </p>
-          {product.preOrderConfig.orderInstructions ? (
-            <p className="mt-1 text-amber-800">
-              {product.preOrderConfig.orderInstructions}
+          <p className="mt-1 text-amber-800">
+            Đây là sản phẩm dịch vụ (đặt hàng). Sau khi thanh toán, vui lòng liên hệ shop hoặc đợi shop hoàn thành đơn.
+          </p>
+        </div>
+      ) : null}
+
+      {isPreOrder ? (
+        <div className="mt-5">
+          <label
+            htmlFor="product-buyer-inputs"
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.06em] text-slate-600"
+          >
+            <MessageSquareText className="size-4 text-emerald-600" />
+            Thông tin gửi shop
+            <span className="font-normal normal-case tracking-normal text-slate-400">(không bắt buộc)</span>
+          </label>
+          {product.preOrderConfig?.orderInstructions ? (
+            <p className="mt-2 text-xs leading-5 text-amber-800">
+              Shop yêu cầu: {product.preOrderConfig.orderInstructions}
             </p>
           ) : null}
+          <textarea
+            id="product-buyer-inputs"
+            value={buyerInputs}
+            onChange={(event) => {
+              setBuyerInputs(event.target.value);
+              setRetryIdempotencyKey(null);
+            }}
+            rows={3}
+            maxLength={200}
+            placeholder="Nhập email hoặc vài dòng nhắn cho shop..."
+            className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+          />
+          <p className="mt-1 text-right text-[11px] text-slate-400">
+            {buyerInputs.length}/200 ký tự
+          </p>
         </div>
       ) : null}
 
@@ -201,29 +326,37 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         </p>
       </div>
 
-      <button
-        type="button"
-        disabled={unavailable || isCheckingOut}
-        onClick={() => void checkout()}
-        className="mt-6 inline-flex h-13 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase tracking-[0.05em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-      >
-        {isCheckingOut ? <><LoaderCircle className="mr-2 size-4 animate-spin" />Đang thanh toán...</> : unavailable ? "Sản phẩm hiện không khả dụng" : "Thanh toán mua ngay"}
-      </button>
-
-      {checkoutNotice ? (
-        <p
-          className="mt-3 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm leading-5 text-emerald-800"
-          role="status"
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          disabled={unavailable || isAddingToCart || isCheckingOut}
+          onClick={() => void addToCart()}
+          className="inline-flex h-13 items-center justify-center rounded-xl border border-emerald-600 bg-white px-4 text-sm font-black uppercase tracking-[0.04em] text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
         >
-          {checkoutNotice}
-        </p>
-      ) : null}
-
-      {checkoutError ? (
-        <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2.5 text-sm leading-5 text-rose-700" role="alert">
-          {checkoutError} Bạn có thể bấm lại; hệ thống giữ nguyên mã chống trừ tiền hai lần.
-        </p>
-      ) : null}
+          {isAddingToCart ? (
+            <LoaderCircle className="mr-2 size-4 animate-spin" />
+          ) : (
+            <ShoppingCart className="mr-2 size-4" />
+          )}
+          Thêm vào giỏ
+        </button>
+        <button
+          type="button"
+          disabled={unavailable || isCheckingOut || isAddingToCart}
+          onClick={() => void checkout()}
+          className="inline-flex h-13 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-black uppercase tracking-[0.04em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+        >
+          {isCheckingOut ? (
+            <><LoaderCircle className="mr-2 size-4 animate-spin" />Đang thanh toán...</>
+          ) : outOfStock ? (
+            "Hết hàng"
+          ) : unavailable ? (
+            "Ngừng bán"
+          ) : (
+            "Mua ngay"
+          )}
+        </button>
+      </div>
 
       <p className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
         <ShieldCheck className="size-4 text-emerald-600" />

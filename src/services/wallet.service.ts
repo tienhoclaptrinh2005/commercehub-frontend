@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  DepositRequest,
   PageResponse,
   WalletSummary,
   WalletTransaction,
@@ -27,6 +28,14 @@ export const walletService = {
       { params: { page, size } },
     );
     return unwrapData(response.data, "Không nhận được lịch sử giao dịch");
+  },
+
+  async createDepositUrl(payload: DepositRequest): Promise<string> {
+    const response = await api.post<ApiResponse<string>>(
+      "/api/v1/wallet/deposit",
+      payload,
+    );
+    return unwrapData(response.data, "Không nhận được đường dẫn thanh toán VNPay");
   },
 
   async requestWithdrawal(payload: WithdrawalRequest): Promise<string> {

@@ -5,6 +5,7 @@ import { Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 
+import { useAppModal } from "@/components/ui/app-modal";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -16,11 +17,11 @@ import { getApiErrorMessage } from "@/services/api";
 import { userService } from "@/services/user.service";
 
 export function ChangePasswordForm() {
+  const modal = useAppModal();
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const {
     register,
     handleSubmit,
@@ -33,15 +34,19 @@ export function ChangePasswordForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     setIsSubmitting(true);
-    setNotice(null);
     try {
       await userService.changePassword(values);
       reset();
-      setNotice({ type: "success", message: "Mật khẩu đã được thay đổi thành công." });
+      modal.showSuccess({
+        title: "Đổi mật khẩu thành công",
+        description: "Mật khẩu mới đã được cập nhật cho tài khoản của bạn.",
+        confirmLabel: "Hoàn tất",
+      });
     } catch (requestError) {
-      setNotice({
-        type: "error",
-        message: getApiErrorMessage(requestError, "Không thể đổi mật khẩu"),
+      modal.showError({
+        title: "Không thể đổi mật khẩu",
+        description: getApiErrorMessage(requestError, "Không thể đổi mật khẩu"),
+        confirmLabel: "Đã hiểu",
       });
     } finally {
       setIsSubmitting(false);
@@ -61,19 +66,6 @@ export function ChangePasswordForm() {
           </p>
         </div>
       </div>
-
-      {notice ? (
-        <div
-          className={`mt-5 rounded-lg border px-4 py-3 text-sm font-semibold ${
-            notice.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-          role={notice.type === "error" ? "alert" : "status"}
-        >
-          {notice.message}
-        </div>
-      ) : null}
 
       <form onSubmit={onSubmit} className="mt-6 max-w-xl space-y-5" noValidate>
         <PasswordField

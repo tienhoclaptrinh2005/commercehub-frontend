@@ -6,7 +6,6 @@ import {
   BadgeInfo,
   BanknoteArrowDown,
   Building2,
-  CheckCircle2,
   CreditCard,
   Send,
   ShieldCheck,
@@ -17,6 +16,7 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
+import { useAppModal } from "@/components/ui/app-modal";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { useWalletSummary } from "@/hooks/api/useWallet";
@@ -52,8 +52,6 @@ const BANKS = [
 
 const MONEY_FORMATTER = new Intl.NumberFormat("vi-VN");
 
-type Notice = { type: "success" | "error"; message: string } | null;
-
 function normalizeMoneyInput(input: string) {
   const digits = input.replace(/\D/g, "");
   if (!digits) return "";
@@ -82,10 +80,10 @@ function preventInvalidNumberKey(event: KeyboardEvent<HTMLInputElement>) {
 }
 
 export function WithdrawForm() {
+  const modal = useAppModal();
   const session = useAuthStore((state) => state.session);
   const { wallet, isLoading, error: walletError, refresh } = useWalletSummary();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
   const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(
     null,
   );
@@ -133,16 +131,30 @@ export function WithdrawForm() {
       return;
     }
 
-    if (
-      !window.confirm(
-        `Xác nhận gửi yêu cầu rút ${formatCurrency(amount)} về ${values.bankName}, số tài khoản ${values.accountNumber}?`,
-      )
-    ) {
-      return;
-    }
+    const confirmed = await modal.confirm({
+      title: "Xác nhận yêu cầu rút tiền",
+      description: "Vui lòng kiểm tra kỹ thông tin ngân hàng trước khi gửi yêu cầu.",
+      details: (
+        <dl className="space-y-1.5">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Số tiền</dt>
+            <dd className="font-black text-emerald-700">{formatCurrency(amount)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Ngân hàng</dt>
+            <dd className="font-bold">{values.bankName}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Số tài khoản</dt>
+            <dd className="font-bold">{values.accountNumber}</dd>
+          </div>
+        </dl>
+      ),
+      confirmLabel: "Gửi yêu cầu",
+    });
+    if (!confirmed) return;
 
     setIsSubmitting(true);
-    setNotice(null);
     const idempotencyKey = retryIdempotencyKey ?? crypto.randomUUID();
     setRetryIdempotencyKey(idempotencyKey);
 
@@ -163,14 +175,24 @@ export function WithdrawForm() {
         accountNumber: "",
         accountName: values.accountName.trim().toLocaleUpperCase("vi-VN"),
       });
-      setNotice({ type: "success", message });
+      modal.showSuccess({
+        title: "Gửi yêu cầu rút tiền thành công",
+        description: message,
+        details: (
+          <p className="text-center text-xs text-slate-500">
+            Yêu cầu đang chờ Admin xử lý. Số tiền sẽ được hoàn lại nếu yêu cầu bị từ chối.
+          </p>
+        ),
+        confirmLabel: "Hoàn tất",
+      });
     } catch (requestError) {
-      setNotice({
-        type: "error",
-        message: getApiErrorMessage(
+      modal.showError({
+        title: "Không thể gửi yêu cầu rút tiền",
+        description: getApiErrorMessage(
           requestError,
           "Không thể gửi yêu cầu rút tiền",
         ),
+        confirmLabel: "Đã hiểu",
       });
     } finally {
       setIsSubmitting(false);
@@ -193,24 +215,6 @@ export function WithdrawForm() {
           Gửi yêu cầu chuyển số dư khả dụng về tài khoản ngân hàng của bạn.
         </p>
       </div>
-
-      {notice ? (
-        <div
-          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-semibold ${
-            notice.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-          role={notice.type === "error" ? "alert" : "status"}
-        >
-          {notice.type === "success" ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-          ) : (
-            <BadgeInfo className="mt-0.5 size-4 shrink-0" />
-          )}
-          {notice.message}
-        </div>
-      ) : null}
 
       {walletError ? (
         <div

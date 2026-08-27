@@ -6,6 +6,7 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  ariaLabel?: string;
 }
 
 function getVisiblePages(currentPage: number, totalPages: number): number[] {
@@ -18,6 +19,7 @@ export function Pagination({
   currentPage,
   totalPages,
   onPageChange,
+  ariaLabel = "Phân trang",
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -26,7 +28,7 @@ export function Pagination({
   return (
     <nav
       className="mt-8 flex flex-wrap items-center justify-center gap-2"
-      aria-label="Phân trang sản phẩm"
+      aria-label={ariaLabel}
     >
       <button
         type="button"

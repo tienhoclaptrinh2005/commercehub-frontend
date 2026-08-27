@@ -4,6 +4,7 @@ import { ArrowLeft, CircleAlert, Clock3, LoaderCircle, Scale } from "lucide-reac
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useAppModal } from "@/components/ui/app-modal";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
@@ -12,15 +13,21 @@ import type { Dispute } from "@/types";
 import { DisputeStatusBadge } from "./DisputeStatusBadge";
 
 type Mode = "buyer" | "seller" | "admin";
+type ActionConfirmation = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  danger?: boolean;
+};
 
 export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
+  const modal = useAppModal();
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [response, setResponse] = useState("");
   const [adminNote, setAdminNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,15 +50,33 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
     return () => { cancelled = true; };
   }, [id, mode]);
 
-  async function run(action: () => Promise<Dispute>, success: string) {
+  async function run(
+    action: () => Promise<Dispute>,
+    success: string,
+    confirmation: ActionConfirmation,
+  ) {
+    const confirmed = await modal.confirm({
+      ...confirmation,
+      details: <p className="text-center">Khiếu nại <strong className="text-slate-950">#{id}</strong></p>,
+      cancelLabel: "Hủy",
+    });
+    if (!confirmed) return;
+
     setSubmitting(true);
     setError(null);
-    setNotice(null);
     try {
       setDispute(await action());
-      setNotice(success);
+      modal.showSuccess({
+        title: success,
+        description: "Trạng thái khiếu nại đã được cập nhật thành công.",
+        confirmLabel: "Hoàn tất",
+      });
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Không thể cập nhật khiếu nại"));
+      modal.showError({
+        title: "Không thể cập nhật khiếu nại",
+        description: getApiErrorMessage(requestError, "Không thể cập nhật khiếu nại"),
+        confirmLabel: "Đã hiểu",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -87,15 +112,14 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
       </section>
 
       {error ? <div className="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert"><CircleAlert className="size-5 shrink-0" />{error}</div> : null}
-      {notice ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700" role="status">{notice}</div> : null}
 
       {mode === "seller" && ["OPEN", "WARRANTY_IN_PROGRESS"].includes(dispute.status) ? (
         <ActionPanel title="Phản hồi khiếu nại">
           <textarea value={response} onChange={(event) => setResponse(event.target.value)} maxLength={5000} rows={5} placeholder="Mô tả cách xử lý hoặc lý do chuyển admin..." className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
           <div className="mt-3 flex flex-wrap gap-2">
-            {dispute.status === "OPEN" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.startWarranty(dispute, { response }), "Đã bắt đầu bảo hành")}>Nhận bảo hành</ActionButton> : null}
-            {dispute.status === "WARRANTY_IN_PROGRESS" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.completeWarranty(dispute, { response }), "Đã chuyển sang chờ buyer xác nhận")}>Báo đã xử lý xong</ActionButton> : null}
-            <ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.escalateSeller(dispute, { response }), "Đã chuyển tranh chấp cho admin")}>Từ chối / chuyển Admin</ActionButton>
+            {dispute.status === "OPEN" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.startWarranty(dispute, { response }), "Đã bắt đầu bảo hành", { title: "Xác nhận nhận bảo hành", description: "Bạn xác nhận tiếp nhận và xử lý khiếu nại này cho buyer.", confirmLabel: "Nhận bảo hành" })}>Nhận bảo hành</ActionButton> : null}
+            {dispute.status === "WARRANTY_IN_PROGRESS" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.completeWarranty(dispute, { response }), "Đã chuyển sang chờ buyer xác nhận", { title: "Xác nhận đã xử lý xong", description: "Khiếu nại sẽ chuyển sang chờ buyer xác nhận kết quả bảo hành.", confirmLabel: "Báo đã xử lý" })}>Báo đã xử lý xong</ActionButton> : null}
+            <ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.escalateSeller(dispute, { response }), "Đã chuyển tranh chấp cho admin", { title: "Chuyển tranh chấp cho Admin?", description: "Seller từ chối bảo hành và chuyển quyền phán quyết cho Admin.", confirmLabel: "Chuyển Admin", danger: true })}>Từ chối / chuyển Admin</ActionButton>
           </div>
         </ActionPanel>
       ) : null}
@@ -103,14 +127,14 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
       {mode === "buyer" && dispute.status === "WAITING_BUYER_CONFIRMATION" ? (
         <ActionPanel title="Xác nhận kết quả bảo hành">
           <p className="text-sm leading-6 text-slate-600">Nếu đồng ý, đồng hồ giữ tiền T+7 tiếp tục. Nếu từ chối, tranh chấp chuyển sang admin.</p>
-          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.confirmWarranty(dispute.id), "Đã xác nhận bảo hành hoàn tất")}>Tôi đồng ý</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.rejectWarranty(dispute.id), "Đã chuyển tranh chấp cho admin")}>Tôi không đồng ý</ActionButton></div>
+          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.confirmWarranty(dispute.id), "Đã xác nhận bảo hành hoàn tất", { title: "Xác nhận đồng ý kết quả", description: "Đồng hồ giữ tiền T+7 sẽ tiếp tục sau khi bạn xác nhận.", confirmLabel: "Tôi đồng ý" })}>Tôi đồng ý</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.rejectWarranty(dispute.id), "Đã chuyển tranh chấp cho admin", { title: "Không đồng ý kết quả?", description: "Tranh chấp sẽ được chuyển sang Admin để phán quyết.", confirmLabel: "Chuyển Admin", danger: true })}>Tôi không đồng ý</ActionButton></div>
         </ActionPanel>
       ) : null}
 
       {mode === "admin" && dispute.status === "PROCESSING" ? (
         <ActionPanel title="Phán quyết của admin">
           <textarea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} maxLength={5000} rows={4} placeholder="Ghi chú phán quyết..." className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
-          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "BUYER_WIN", adminNote), "Đã phán buyer thắng và hoàn 100%")}>Buyer thắng</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "SELLER_WIN", adminNote), "Đã phán seller thắng; T+7 tiếp tục")}>Seller thắng</ActionButton></div>
+          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "BUYER_WIN", adminNote), "Đã phán buyer thắng và hoàn 100%", { title: "Xác nhận Buyer thắng", description: "Hệ thống sẽ hoàn 100% tiền của sản phẩm khiếu nại cho buyer và hủy phí liên quan.", confirmLabel: "Hoàn tiền cho Buyer" })}>Buyer thắng</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "SELLER_WIN", adminNote), "Đã phán seller thắng; T+7 tiếp tục", { title: "Xác nhận Seller thắng", description: "Khoản giữ tiền sẽ quay lại luồng T+7 và tiếp tục chờ quyết toán cho seller.", confirmLabel: "Xác nhận Seller thắng", danger: true })}>Seller thắng</ActionButton></div>
         </ActionPanel>
       ) : null}
     </div>

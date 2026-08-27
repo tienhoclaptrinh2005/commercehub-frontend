@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import { useAppModal } from "@/components/ui/app-modal";
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
 
@@ -15,6 +16,7 @@ interface CreateDisputeScreenProps {
 
 export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScreenProps) {
   const router = useRouter();
+  const modal = useAppModal();
   const [reason, setReason] = useState("");
   const [evidenceText, setEvidenceText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +51,20 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
       return;
     }
 
+    const confirmed = await modal.confirm({
+      title: "Xác nhận gửi khiếu nại",
+      description: "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại.",
+      details: (
+        <dl className="space-y-1.5">
+          <div className="flex justify-between gap-4"><dt className="text-slate-500">Đơn hàng</dt><dd className="font-bold">#{orderId}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-slate-500">Sản phẩm trong đơn</dt><dd className="font-bold">#{orderItemId}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-slate-500">Bằng chứng</dt><dd className="font-bold">{evidenceUrls.length} đường dẫn</dd></div>
+        </dl>
+      ),
+      confirmLabel: "Gửi khiếu nại",
+    });
+    if (!confirmed) return;
+
     setSubmitting(true);
     setError(null);
     try {
@@ -56,9 +72,19 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
         reason: trimmedReason,
         evidenceUrls,
       });
+      modal.showSuccess({
+        title: "Gửi khiếu nại thành công",
+        description: "Khiếu nại đã được ghi nhận và đang chờ seller phản hồi theo thời hạn quy định.",
+        details: <p className="text-center">Mã khiếu nại: <strong className="text-slate-950">#{dispute.id}</strong></p>,
+        confirmLabel: "Xem khiếu nại",
+      });
       router.replace(`/disputes/${dispute.id}`);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Không thể tạo khiếu nại"));
+      modal.showError({
+        title: "Không thể gửi khiếu nại",
+        description: getApiErrorMessage(requestError, "Không thể tạo khiếu nại"),
+        confirmLabel: "Đã hiểu",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -66,8 +92,8 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-6 lg:p-8">
-      <Link href="/disputes" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700">
-        <ArrowLeft className="size-4" />Quay lại danh sách
+      <Link href={`/orders/${orderId}`} className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700">
+        <ArrowLeft className="size-4" />Quay lại đơn hàng
       </Link>
 
       <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

@@ -36,13 +36,3 @@ export interface CreateDisputeRequest {
   reason: string;
   evidenceUrls?: string[];
 }
-
-export interface CheckoutRequest {
-  items: Array<{
-    productVariantId: number;
-    quantity: number;
-    buyerInputs?: string;
-  }>;
-  paymentMethod: "WALLET";
-  idempotencyKey: string;
-}

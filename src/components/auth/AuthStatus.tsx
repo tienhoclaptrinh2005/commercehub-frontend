@@ -7,6 +7,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  ShoppingBag,
   Store,
   UserRound,
 } from "lucide-react";
@@ -228,6 +229,12 @@ export function AuthStatus() {
               href="/profile/edit"
               label="Cài đặt tài khoản"
               icon={Settings}
+              onNavigate={() => setIsOpen(false)}
+            />
+            <MenuLink
+              href="/orders"
+              label="Lịch sử đơn hàng"
+              icon={ShoppingBag}
               onNavigate={() => setIsOpen(false)}
             />
             <MenuLink

@@ -22,3 +22,7 @@ export interface WithdrawalRequest {
   accountName: string;
   idempotencyKey: string;
 }
+
+export interface DepositRequest {
+  amount: number;
+}
