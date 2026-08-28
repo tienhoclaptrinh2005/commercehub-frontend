@@ -157,7 +157,7 @@ export function OrderDetailScreen({ orderId }: { orderId: number }) {
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-2xl font-black tracking-tight text-slate-950">{order.orderCode}</h1>
-              <OrderStatusBadge status={order.status} />
+              <OrderStatusBadge status={order.effectiveStatus || order.status} />
             </div>
             <p className="mt-2 text-sm text-slate-500">Đặt lúc {formatDateTime(order.placedAt)}</p>
           </div>
@@ -185,7 +185,15 @@ export function OrderDetailScreen({ orderId }: { orderId: number }) {
         <div className="grid gap-4 bg-slate-50/70 p-5 sm:grid-cols-2 lg:grid-cols-4 sm:p-7">
           <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
             <Store className="size-5 text-emerald-600" />
-            <div><p className="text-xs text-slate-400">Người bán</p><p className="mt-0.5 font-bold text-slate-800">{order.shopName}</p></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-400">Người bán</p>
+              <Link
+                href={`/users/${encodeURIComponent(order.sellerUsername)}`}
+                className="mt-0.5 block truncate font-bold text-slate-800 transition hover:text-emerald-700 hover:underline"
+              >
+                {order.shopName}
+              </Link>
+            </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
             {isInstant ? <PackageCheck className="size-5 text-sky-600" /> : <Clock3 className="size-5 text-amber-600" />}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CircleAlert, LoaderCircle, Scale } from "lucide-react";
+import { ArrowLeft, CircleAlert, Info, LoaderCircle, Scale } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -53,7 +53,7 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
 
     const confirmed = await modal.confirm({
       title: "Xác nhận gửi khiếu nại",
-      description: "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại.",
+      description: "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại. Mỗi sản phẩm trong đơn chỉ được khiếu nại một lần.",
       details: (
         <dl className="space-y-1.5">
           <div className="flex justify-between gap-4"><dt className="text-slate-500">Đơn hàng</dt><dd className="font-bold">#{orderId}</dd></div>
@@ -108,6 +108,11 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
 
         {!validIds ? <div className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert"><CircleAlert className="size-5 shrink-0" />Đường dẫn không chứa mã đơn hàng hợp lệ.</div> : null}
         {error ? <div className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert"><CircleAlert className="size-5 shrink-0" />{error}</div> : null}
+
+        <div className="mt-5 flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs leading-5 text-amber-900" role="note">
+          <Info className="mt-0.5 size-4 shrink-0" />
+          <p><strong>Lưu ý:</strong> Trong thời gian giữ tiền T+7, mỗi sản phẩm trong đơn chỉ được khiếu nại một lần. Nếu lỗi phát sinh lại sau khi khiếu nại đã đóng, hãy liên hệ shop; nếu shop không hỗ trợ, hãy liên hệ Admin.</p>
+        </div>
 
         <label className="mt-6 block text-sm font-bold text-slate-800" htmlFor="dispute-reason">Lý do khiếu nại <span className="text-rose-600">*</span></label>
         <textarea id="dispute-reason" required maxLength={5000} rows={7} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Mô tả vấn đề và kết quả bạn mong muốn..." className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />

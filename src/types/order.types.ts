@@ -3,8 +3,10 @@ export interface OrderSummary {
   orderCode: string;
   shopId: number;
   shopName: string;
+  sellerUsername: string;
   deliveryType: string;
   status: string;
+  effectiveStatus: string;
   paymentStatus: string;
   totalAmount: number;
   placedAt: string;

@@ -17,3 +17,14 @@ export interface SpringPage<T> {
   last: boolean;
   empty: boolean;
 }
+
+/** Dạng Slice của Spring Data: không đếm tổng bản ghi/tổng số trang. */
+export interface SpringSlice<T> {
+  content: T[];
+  size: number;
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}

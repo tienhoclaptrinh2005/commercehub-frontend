@@ -12,6 +12,12 @@ import { DisputeStatusBadge } from "./DisputeStatusBadge";
 
 type Mode = "buyer" | "seller" | "admin";
 
+const CLOSED_REASON_LABELS: Record<NonNullable<Dispute["closedReason"]>, string> = {
+  BUYER_WITHDREW: "Buyer tự hủy",
+  BUYER_ACCEPTED_WARRANTY: "Buyer đã đồng ý bảo hành",
+  BUYER_CONFIRMATION_TIMEOUT: "Buyer quá hạn xác nhận",
+};
+
 const EMPTY: SpringPage<Dispute> = {
   content: [], totalElements: 0, totalPages: 0, size: 20, number: 0,
   first: true, last: true, empty: true,
@@ -101,6 +107,7 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
               <Link key={dispute.id} href={`${baseHref}/${dispute.id}`} className="grid gap-3 px-5 py-5 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><span className="font-black text-slate-900">Khiếu nại #{dispute.id}</span><DisputeStatusBadge status={dispute.status} /></div>
+                  {dispute.status === "CLOSED" && dispute.closedReason ? <p className="mt-1 text-xs font-semibold text-slate-500">Nguyên nhân đóng: {CLOSED_REASON_LABELS[dispute.closedReason]}</p> : null}
                   <p className="mt-2 line-clamp-2 text-sm text-slate-600">{dispute.reason}</p>
                   <p className="mt-2 text-xs text-slate-400">Đơn #{dispute.orderId} · Item #{dispute.orderItemId} · {new Date(dispute.createdAt).toLocaleString("vi-VN")}</p>
                 </div>

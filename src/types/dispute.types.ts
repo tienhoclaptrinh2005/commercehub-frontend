@@ -7,6 +7,11 @@ export type DisputeStatus =
   | "SELLER_WIN"
   | "CLOSED";
 
+export type DisputeClosedReason =
+  | "BUYER_WITHDREW"
+  | "BUYER_ACCEPTED_WARRANTY"
+  | "BUYER_CONFIRMATION_TIMEOUT";
+
 export interface Dispute {
   id: number;
   orderId: number;
@@ -18,6 +23,7 @@ export interface Dispute {
   shopResponse: string | null;
   shopEvidenceUrls: string[];
   status: DisputeStatus;
+  closedReason: DisputeClosedReason | null;
   refundAmount: number | null;
   adminNote: string | null;
   resolverId: number | null;

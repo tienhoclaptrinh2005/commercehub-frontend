@@ -33,6 +33,10 @@ export const disputeService = {
     return (await api.post<Dispute>(`/api/v1/disputes/${id}/escalate`)).data;
   },
 
+  async withdraw(id: number): Promise<Dispute> {
+    return (await api.post<Dispute>(`/api/v1/disputes/${id}/withdraw`)).data;
+  },
+
   async listSeller(page = 0, size = 20): Promise<SpringPage<Dispute>> {
     return (await api.get<SpringPage<Dispute>>("/api/v1/seller/disputes", {
       params: { page, size, sort: "createdAt,desc" },

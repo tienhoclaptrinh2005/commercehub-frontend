@@ -3,37 +3,55 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getApiErrorMessage } from "@/services/api";
-import { orderService } from "@/services/order.service";
-import type { OrderSummary, SpringPage } from "@/types";
+import {
+  orderService,
+  type OrderHistoryCursor,
+  type OrderHistoryFilters,
+} from "@/services/order.service";
+import type { OrderSummary, SpringSlice } from "@/types";
 
-function emptyPage(page: number, size: number): SpringPage<OrderSummary> {
+function emptySlice(size: number): SpringSlice<OrderSummary> {
   return {
     content: [],
-    totalElements: 0,
-    totalPages: 0,
     size,
-    number: page,
+    number: 0,
+    numberOfElements: 0,
     first: true,
     last: true,
     empty: true,
   };
 }
 
-export function useOrders(page: number, size = 10, orderCode = "") {
+export function useOrders(
+  cursor: OrderHistoryCursor | null,
+  size = 10,
+  filters: OrderHistoryFilters = {},
+) {
   const [reloadKey, setReloadKey] = useState(0);
-  const normalizedOrderCode = orderCode.trim();
-  const requestKey = `${page}:${size}:${normalizedOrderCode}:${reloadKey}`;
+  const normalizedOrderCode = filters.orderCode?.trim() ?? "";
+  const status = filters.status ?? "";
+  const fromDate = filters.fromDate ?? "";
+  const toDate = filters.toDate ?? "";
+  const cursorKey = cursor
+    ? `${cursor.beforePlacedAt}:${cursor.beforeId}`
+    : "first";
+  const requestKey = `${cursorKey}:${size}:${normalizedOrderCode}:${status}:${fromDate}:${toDate}:${reloadKey}`;
   const [state, setState] = useState<{
     requestKey: string;
-    result: SpringPage<OrderSummary>;
+    result: SpringSlice<OrderSummary>;
     error: string | null;
-  }>({ requestKey: "", result: emptyPage(page, size), error: null });
+  }>({ requestKey: "", result: emptySlice(size), error: null });
 
   useEffect(() => {
     let cancelled = false;
 
     orderService
-      .getMyOrders(page, size, normalizedOrderCode)
+      .getMyOrders(cursor, size, {
+        orderCode: normalizedOrderCode,
+        status,
+        fromDate,
+        toDate,
+      })
       .then((result) => {
         if (!cancelled) setState({ requestKey, result, error: null });
       })
@@ -41,7 +59,7 @@ export function useOrders(page: number, size = 10, orderCode = "") {
         if (!cancelled) {
           setState({
             requestKey,
-            result: emptyPage(page, size),
+            result: emptySlice(size),
             error: getApiErrorMessage(
               requestError,
               "Không thể tải lịch sử đơn hàng",
@@ -53,7 +71,7 @@ export function useOrders(page: number, size = 10, orderCode = "") {
     return () => {
       cancelled = true;
     };
-  }, [normalizedOrderCode, page, requestKey, size]);
+  }, [cursor, fromDate, normalizedOrderCode, requestKey, size, status, toDate]);
 
   const refresh = useCallback(() => {
     setReloadKey((current) => current + 1);
@@ -62,7 +80,7 @@ export function useOrders(page: number, size = 10, orderCode = "") {
   const isCurrentRequest = state.requestKey === requestKey;
 
   return {
-    result: isCurrentRequest ? state.result : emptyPage(page, size),
+    result: isCurrentRequest ? state.result : emptySlice(size),
     error: isCurrentRequest ? state.error : null,
     isLoading: !isCurrentRequest,
     refresh,

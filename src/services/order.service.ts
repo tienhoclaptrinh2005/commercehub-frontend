@@ -3,7 +3,7 @@ import type {
   DeliveredAsset,
   OrderDetail,
   OrderSummary,
-  SpringPage,
+  SpringSlice,
 } from "@/types";
 
 import { api } from "./api";
@@ -15,20 +15,35 @@ function unwrapData<T>(response: ApiResponse<T>, fallback: string): T {
   return response.data;
 }
 
+export interface OrderHistoryFilters {
+  orderCode?: string;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface OrderHistoryCursor {
+  beforePlacedAt: string;
+  beforeId: number;
+}
+
 export const orderService = {
   async getMyOrders(
-    page = 0,
+    cursor: OrderHistoryCursor | null = null,
     size = 10,
-    orderCode?: string,
-  ): Promise<SpringPage<OrderSummary>> {
-    const response = await api.get<ApiResponse<SpringPage<OrderSummary>>>(
+    filters: OrderHistoryFilters = {},
+  ): Promise<SpringSlice<OrderSummary>> {
+    const response = await api.get<ApiResponse<SpringSlice<OrderSummary>>>(
       "/api/v1/orders",
       {
         params: {
-          page,
           size,
-          sort: "placedAt,desc",
-          orderCode: orderCode?.trim() || undefined,
+          beforePlacedAt: cursor?.beforePlacedAt,
+          beforeId: cursor?.beforeId,
+          orderCode: filters.orderCode?.trim() || undefined,
+          status: filters.status || undefined,
+          fromDate: filters.fromDate || undefined,
+          toDate: filters.toDate || undefined,
         },
       },
     );

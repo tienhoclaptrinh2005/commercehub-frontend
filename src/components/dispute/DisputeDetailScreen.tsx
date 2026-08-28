@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CircleAlert, Clock3, LoaderCircle, Scale } from "lucide-react";
+import { ArrowLeft, CircleAlert, Clock3, InfoIcon, LoaderCircle, Scale } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -18,6 +18,12 @@ type ActionConfirmation = {
   description: string;
   confirmLabel: string;
   danger?: boolean;
+};
+
+const CLOSED_REASON_LABELS: Record<NonNullable<Dispute["closedReason"]>, string> = {
+  BUYER_WITHDREW: "Buyer tự hủy khiếu nại",
+  BUYER_ACCEPTED_WARRANTY: "Buyer xác nhận bảo hành thành công",
+  BUYER_CONFIRMATION_TIMEOUT: "Buyer không phản hồi trong thời hạn xác nhận",
 };
 
 export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
@@ -105,6 +111,21 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
           <Info label="Tạo lúc" value={new Date(dispute.createdAt).toLocaleString("vi-VN")} />
           <Info label="Hạn xử lý" value={new Date(dispute.deadlineAt).toLocaleString("vi-VN")} icon />
         </div>
+        {dispute.status === "CLOSED" && dispute.closedReason ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <InfoIcon className="mt-0.5 size-4 shrink-0 text-slate-500" />
+            <div>
+              <p><strong>Nguyên nhân đóng:</strong> {CLOSED_REASON_LABELS[dispute.closedReason]}</p>
+              {mode === "buyer" ? <p className="mt-1 text-xs leading-5 text-slate-500">Nếu sản phẩm tiếp tục phát sinh lỗi, hãy liên hệ shop để được hỗ trợ; nếu shop không hỗ trợ, hãy liên hệ Admin.</p> : null}
+            </div>
+          </div>
+        ) : null}
+        {dispute.status === "WARRANTY_IN_PROGRESS" ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            <Clock3 className="mt-0.5 size-4 shrink-0" />
+            <p>Seller có tối đa <strong>24 giờ kể từ lúc nhận bảo hành</strong> để hoàn tất xử lý. Quá hạn, hệ thống tự động hoàn 100% tiền cho buyer mà không cần Admin phán quyết.</p>
+          </div>
+        ) : null}
         <div className="mt-6 rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Lý do buyer</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.reason}</p></div>
         {dispute.shopResponse ? <div className="mt-4 rounded-xl bg-sky-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-sky-700">Phản hồi seller</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.shopResponse}</p></div> : null}
         {dispute.adminNote ? <div className="mt-4 rounded-xl bg-violet-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-violet-700">Ghi chú admin</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.adminNote}</p></div> : null}
@@ -128,6 +149,27 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
         <ActionPanel title="Xác nhận kết quả bảo hành">
           <p className="text-sm leading-6 text-slate-600">Nếu đồng ý, đồng hồ giữ tiền T+7 tiếp tục. Nếu từ chối, tranh chấp chuyển sang admin.</p>
           <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.confirmWarranty(dispute.id), "Đã xác nhận bảo hành hoàn tất", { title: "Xác nhận đồng ý kết quả", description: "Đồng hồ giữ tiền T+7 sẽ tiếp tục sau khi bạn xác nhận.", confirmLabel: "Tôi đồng ý" })}>Tôi đồng ý</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.rejectWarranty(dispute.id), "Đã chuyển tranh chấp cho admin", { title: "Không đồng ý kết quả?", description: "Tranh chấp sẽ được chuyển sang Admin để phán quyết.", confirmLabel: "Chuyển Admin", danger: true })}>Tôi không đồng ý</ActionButton></div>
+        </ActionPanel>
+      ) : null}
+
+      {mode === "buyer" && ["OPEN", "WARRANTY_IN_PROGRESS"].includes(dispute.status) ? (
+        <ActionPanel title="Tùy chọn của buyer">
+          <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs leading-5 text-amber-900">
+            <InfoIcon className="mt-0.5 size-4 shrink-0" />
+            <p>Mỗi sản phẩm trong đơn chỉ được khiếu nại một lần trong thời gian giữ tiền T+7. Sau khi tự hủy, đồng hồ T+7 tiếp tục và bạn không thể mở lại khiếu nại này.</p>
+          </div>
+          <div className="mt-3">
+            <ActionButton danger disabled={submitting} onClick={() => void run(
+              () => disputeService.withdraw(dispute.id),
+              "Đã hủy khiếu nại",
+              {
+                title: "Tự hủy khiếu nại?",
+                description: "Thao tác này không thể hoàn tác. Bạn không thể khiếu nại lại sản phẩm này; thời gian giữ tiền T+7 sẽ tiếp tục phần còn lại.",
+                confirmLabel: "Xác nhận hủy",
+                danger: true,
+              },
+            )}>Tự hủy khiếu nại</ActionButton>
+          </div>
         </ActionPanel>
       ) : null}
 
