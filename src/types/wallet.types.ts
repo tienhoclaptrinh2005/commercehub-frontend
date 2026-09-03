@@ -11,7 +11,30 @@ export interface WalletTransaction {
   amount: number;
   balanceBefore: number;
   balanceAfter: number;
+  referenceId: number | null;
+  referenceType: string | null;
+  referenceCode: string | null;
   description: string | null;
+  createdAt: string;
+}
+
+export type WalletTransactionCategory =
+  | "ALL"
+  | "DEPOSIT"
+  | "PAYMENT"
+  | "WITHDRAWAL"
+  | "REFUND"
+  | "SALE"
+  | "FEE"
+  | "ADJUSTMENT";
+
+export interface DepositHistoryItem {
+  id: number;
+  amount: number;
+  provider: string;
+  transactionCode: string;
+  status: "PENDING" | "SUCCESS" | "FAILED";
+  processedAt: string | null;
   createdAt: string;
 }
 

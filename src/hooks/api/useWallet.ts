@@ -4,13 +4,21 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getApiErrorMessage } from "@/services/api";
 import { walletService } from "@/services/wallet.service";
-import type { PageResponse, WalletSummary, WalletTransaction } from "@/types";
+import type {
+  DepositHistoryItem,
+  PageResponse,
+  SliceResponse,
+  WalletSummary,
+  WalletTransaction,
+  WalletTransactionCategory,
+} from "@/types";
 
-const EMPTY_TRANSACTIONS: PageResponse<WalletTransaction> = {
+const EMPTY_TRANSACTIONS: SliceResponse<WalletTransaction> = {
   currentPage: 0,
   pageSize: 10,
-  totalPages: 0,
-  totalElements: 0,
+  hasNext: false,
+  hasPrevious: false,
+  pageNumbers: [1],
   data: [],
 };
 
@@ -72,13 +80,19 @@ export function useWalletSummary() {
   return { wallet, isLoading, error, refresh };
 }
 
-export function useWalletTransactions(page = 1, size = 10) {
+export function useWalletTransactions(
+  page = 1,
+  size = 10,
+  category: WalletTransactionCategory = "ALL",
+) {
   const [state, setState] = useState<{
     loadedPage: number;
-    result: PageResponse<WalletTransaction>;
+    loadedCategory: WalletTransactionCategory;
+    result: SliceResponse<WalletTransaction>;
     error: string | null;
   }>({
     loadedPage: 0,
+    loadedCategory: "ALL",
     result: { ...EMPTY_TRANSACTIONS, pageSize: size },
     error: null,
   });
@@ -86,12 +100,13 @@ export function useWalletTransactions(page = 1, size = 10) {
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, loadedPage: 0, error: null }));
     try {
-      const nextResult = await walletService.getTransactions(page, size);
-      setState({ loadedPage: page, result: nextResult, error: null });
+      const nextResult = await walletService.getTransactions(page, size, category);
+      setState({ loadedPage: page, loadedCategory: category, result: nextResult, error: null });
       return nextResult;
     } catch (requestError) {
       setState({
         loadedPage: page,
+        loadedCategory: category,
         result: { ...EMPTY_TRANSACTIONS, pageSize: size },
         error: getApiErrorMessage(
           requestError,
@@ -100,22 +115,23 @@ export function useWalletTransactions(page = 1, size = 10) {
       });
       return null;
     }
-  }, [page, size]);
+  }, [category, page, size]);
 
   useEffect(() => {
     let isCancelled = false;
 
     walletService
-      .getTransactions(page, size)
+      .getTransactions(page, size, category)
       .then((nextResult) => {
         if (!isCancelled) {
-          setState({ loadedPage: page, result: nextResult, error: null });
+          setState({ loadedPage: page, loadedCategory: category, result: nextResult, error: null });
         }
       })
       .catch((requestError: unknown) => {
         if (!isCancelled) {
           setState({
             loadedPage: page,
+            loadedCategory: category,
             result: { ...EMPTY_TRANSACTIONS, pageSize: size },
             error: getApiErrorMessage(
               requestError,
@@ -128,13 +144,76 @@ export function useWalletTransactions(page = 1, size = 10) {
     return () => {
       isCancelled = true;
     };
+  }, [category, page, size]);
+
+  const isCurrentRequest = state.loadedPage === page && state.loadedCategory === category;
+
+  return {
+    result: isCurrentRequest
+      ? state.result
+      : { ...EMPTY_TRANSACTIONS, pageSize: size },
+    isLoading: !isCurrentRequest,
+    error: isCurrentRequest ? state.error : null,
+    refresh,
+  };
+}
+
+const EMPTY_DEPOSITS: PageResponse<DepositHistoryItem> = {
+  currentPage: 0,
+  pageSize: 10,
+  totalPages: 0,
+  totalElements: 0,
+  data: [],
+};
+
+export function useDepositHistory(page = 1, size = 10) {
+  const [state, setState] = useState<{
+    loadedPage: number;
+    result: PageResponse<DepositHistoryItem>;
+    error: string | null;
+  }>({ loadedPage: 0, result: { ...EMPTY_DEPOSITS, pageSize: size }, error: null });
+
+  const refresh = useCallback(async () => {
+    setState((current) => ({ ...current, loadedPage: 0, error: null }));
+    try {
+      const result = await walletService.getDepositHistory(page, size);
+      setState({ loadedPage: page, result, error: null });
+      return result;
+    } catch (requestError) {
+      setState({
+        loadedPage: page,
+        result: { ...EMPTY_DEPOSITS, pageSize: size },
+        error: getApiErrorMessage(requestError, "Không thể tải lịch sử nạp tiền"),
+      });
+      return null;
+    }
+  }, [page, size]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    walletService
+      .getDepositHistory(page, size)
+      .then((result) => {
+        if (!isCancelled) setState({ loadedPage: page, result, error: null });
+      })
+      .catch((requestError: unknown) => {
+        if (!isCancelled) {
+          setState({
+            loadedPage: page,
+            result: { ...EMPTY_DEPOSITS, pageSize: size },
+            error: getApiErrorMessage(requestError, "Không thể tải lịch sử nạp tiền"),
+          });
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [page, size]);
 
   return {
-    result:
-      state.loadedPage === page
-        ? state.result
-        : { ...EMPTY_TRANSACTIONS, pageSize: size },
+    result: state.loadedPage === page ? state.result : { ...EMPTY_DEPOSITS, pageSize: size },
     isLoading: state.loadedPage !== page,
     error: state.loadedPage === page ? state.error : null,
     refresh,

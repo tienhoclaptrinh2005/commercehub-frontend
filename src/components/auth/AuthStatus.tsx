@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowUpDown,
   ChevronDown,
   Eye,
   LockKeyhole,
@@ -235,6 +236,12 @@ export function AuthStatus() {
               href="/orders"
               label="Lịch sử đơn hàng"
               icon={ShoppingBag}
+              onNavigate={() => setIsOpen(false)}
+            />
+            <MenuLink
+              href="/wallet/transactions"
+              label="Biến động số dư"
+              icon={ArrowUpDown}
               onNavigate={() => setIsOpen(false)}
             />
             <MenuLink

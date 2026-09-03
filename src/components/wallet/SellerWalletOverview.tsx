@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { SlicePagination } from "@/components/common/SlicePagination";
 import {
   useWalletSummary,
   useWalletTransactions,
@@ -150,7 +151,7 @@ export function SellerWalletOverview() {
               Lịch sử giao dịch
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              {result.totalElements} giao dịch được ghi nhận trong ví.
+              Các biến động số dư mới nhất của ví.
             </p>
           </div>
           <button
@@ -207,31 +208,13 @@ export function SellerWalletOverview() {
           </div>
         ) : null}
 
-        {result.totalPages > 1 ? (
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm sm:px-6">
-            <span className="text-slate-500">
-              Trang {result.currentPage + 1}/{result.totalPages}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={page <= 1 || areTransactionsLoading}
-                className="h-9 rounded-lg border border-slate-200 px-3 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Trước
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((current) => current + 1)}
-                disabled={page >= result.totalPages || areTransactionsLoading}
-                className="h-9 rounded-lg border border-slate-200 px-3 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        ) : null}
+        <SlicePagination
+          currentPage={page}
+          pageNumbers={result.pageNumbers}
+          hasNext={result.hasNext}
+          isLoading={areTransactionsLoading}
+          onPageChange={setPage}
+        />
       </section>
     </div>
   );

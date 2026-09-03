@@ -6,6 +6,16 @@ export interface PageResponse<T> {
   data: T[];
 }
 
+/** Phân trang không chạy truy vấn COUNT(*), chỉ cho biết còn trang trước/sau. */
+export interface SliceResponse<T> {
+  currentPage: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  pageNumbers: number[];
+  data: T[];
+}
+
 /** Dạng Page mặc định do Spring Data trả trực tiếp. */
 export interface SpringPage<T> {
   content: T[];

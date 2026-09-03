@@ -4,6 +4,8 @@ import {
   ArrowRight,
   Banknote,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   CreditCard,
   History,
@@ -15,10 +17,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
-import { useWalletSummary, useWalletTransactions } from "@/hooks/api/useWallet";
+import { useDepositHistory, useWalletSummary } from "@/hooks/api/useWallet";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
@@ -65,7 +67,8 @@ export function DepositScreen() {
   const modal = useAppModal();
   const { user, isHydrated } = useAuth();
   const { wallet, isLoading: walletLoading, error: walletError } = useWalletSummary();
-  const { result, isLoading: historyLoading, error: historyError, refresh } = useWalletTransactions(1, 30);
+  const [depositPage, setDepositPage] = useState(1);
+  const { result, isLoading: historyLoading, error: historyError, refresh } = useDepositHistory(depositPage, 10);
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -73,11 +76,6 @@ export function DepositScreen() {
   useEffect(() => {
     if (isHydrated && !user) router.replace("/login");
   }, [isHydrated, router, user]);
-
-  const successfulDeposits = useMemo(
-    () => result.data.filter((transaction) => transaction.transactionType === "DEPOSIT"),
-    [result.data],
-  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -241,19 +239,35 @@ export function DepositScreen() {
 
       <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
-          <div><h2 className="flex items-center gap-2 font-black text-slate-950"><History className="size-5 text-emerald-600" />Tiền nạp đã vào ví</h2><p className="mt-1 text-xs text-slate-500">Dữ liệu thật từ lịch sử giao dịch ví; chưa bao gồm giao dịch đang chờ hoặc thất bại.</p></div>
+          <div><h2 className="flex items-center gap-2 font-black text-slate-950"><History className="size-5 text-emerald-600" />Lịch sử nạp tiền</h2><p className="mt-1 text-xs text-slate-500">{result.totalElements} giao dịch · đang chờ, thành công hoặc thất bại từ dữ liệu thật.</p></div>
           <button type="button" onClick={() => void refresh()} disabled={historyLoading} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`size-3.5 ${historyLoading ? "animate-spin" : ""}`} />Làm mới</button>
         </header>
-        {historyError ? <div className="p-6 text-sm text-rose-600">{historyError}</div> : historyLoading ? <div className="grid min-h-40 place-items-center text-sm text-slate-500"><LoaderCircle className="mr-2 inline size-4 animate-spin" />Đang tải lịch sử...</div> : successfulDeposits.length === 0 ? <div className="grid min-h-44 place-items-center px-5 text-center"><div><WalletCards className="mx-auto size-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-600">Chưa có khoản nạp thành công trong dữ liệu gần đây.</p></div></div> : (
+        {historyError ? <div className="p-6 text-sm text-rose-600">{historyError}</div> : historyLoading ? <div className="grid min-h-40 place-items-center text-sm text-slate-500"><LoaderCircle className="mr-2 inline size-4 animate-spin" />Đang tải lịch sử...</div> : result.data.length === 0 ? <div className="grid min-h-44 place-items-center px-5 text-center"><div><WalletCards className="mx-auto size-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-600">Bạn chưa tạo giao dịch nạp tiền nào.</p></div></div> : (
           <div className="divide-y divide-slate-100">
-            {successfulDeposits.map((transaction) => (
-              <article key={transaction.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
-                <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><CreditCard className="size-4" /></span><div className="min-w-0"><p className="font-bold text-slate-900">Nạp tiền vào ví</p><p className="mt-1 text-xs text-slate-500">{formatTransactionTime(transaction.createdAt)} · {transaction.description || "VNPay"}</p></div></div>
-                <div className="text-right"><p className="font-black text-emerald-700">+{formatCurrency(Math.abs(Number(transaction.amount)))}</p><p className="mt-1 text-[11px] font-bold text-emerald-600">Đã vào ví</p></div>
+            {result.data.map((deposit) => {
+              const status = deposit.status === "SUCCESS"
+                ? { label: "Đã vào ví", tone: "text-emerald-700" }
+                : deposit.status === "FAILED"
+                  ? { label: "Thất bại", tone: "text-rose-600" }
+                  : { label: "Đang chờ thanh toán", tone: "text-amber-700" };
+              return (
+              <article key={deposit.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><CreditCard className="size-4" /></span><div className="min-w-0"><p className="font-bold text-slate-900">Nạp tiền qua {deposit.provider}</p><p className="mt-1 truncate text-xs text-slate-500">{formatTransactionTime(deposit.createdAt)} · {deposit.transactionCode}</p></div></div>
+                <div className="text-right"><p className={`font-black ${deposit.status === "SUCCESS" ? "text-emerald-700" : "text-slate-800"}`}>{deposit.status === "SUCCESS" ? "+" : ""}{formatCurrency(Math.abs(Number(deposit.amount)))}</p><p className={`mt-1 text-[11px] font-bold ${status.tone}`}>{status.label}</p></div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
+        {result.totalPages > 1 ? (
+          <footer className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm sm:px-6">
+            <span className="font-semibold text-slate-500">Trang {result.currentPage + 1}/{result.totalPages}</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDepositPage((current) => Math.max(1, current - 1))} disabled={depositPage <= 1 || historyLoading} className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40"><ChevronLeft className="size-4" />Trước</button>
+              <button type="button" onClick={() => setDepositPage((current) => current + 1)} disabled={depositPage >= result.totalPages || historyLoading} className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40">Sau<ChevronRight className="size-4" /></button>
+            </div>
+          </footer>
+        ) : null}
       </section>
     </div>
   );
