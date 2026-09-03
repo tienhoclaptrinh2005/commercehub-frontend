@@ -80,7 +80,14 @@ export function useWalletSummary() {
   return { wallet, isLoading, error, refresh };
 }
 
-export function useWalletTransactions(
+type TransactionHistoryLoader = (
+  page: number,
+  size: number,
+  category: WalletTransactionCategory,
+) => Promise<SliceResponse<WalletTransaction>>;
+
+function useTransactionHistory(
+  loadTransactions: TransactionHistoryLoader,
   page = 1,
   size = 10,
   category: WalletTransactionCategory = "ALL",
@@ -100,7 +107,7 @@ export function useWalletTransactions(
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, loadedPage: 0, error: null }));
     try {
-      const nextResult = await walletService.getTransactions(page, size, category);
+      const nextResult = await loadTransactions(page, size, category);
       setState({ loadedPage: page, loadedCategory: category, result: nextResult, error: null });
       return nextResult;
     } catch (requestError) {
@@ -115,13 +122,12 @@ export function useWalletTransactions(
       });
       return null;
     }
-  }, [category, page, size]);
+  }, [category, loadTransactions, page, size]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    walletService
-      .getTransactions(page, size, category)
+    loadTransactions(page, size, category)
       .then((nextResult) => {
         if (!isCancelled) {
           setState({ loadedPage: page, loadedCategory: category, result: nextResult, error: null });
@@ -144,7 +150,7 @@ export function useWalletTransactions(
     return () => {
       isCancelled = true;
     };
-  }, [category, page, size]);
+  }, [category, loadTransactions, page, size]);
 
   const isCurrentRequest = state.loadedPage === page && state.loadedCategory === category;
 
@@ -156,6 +162,27 @@ export function useWalletTransactions(
     error: isCurrentRequest ? state.error : null,
     refresh,
   };
+}
+
+export function useWalletTransactions(
+  page = 1,
+  size = 10,
+  category: WalletTransactionCategory = "ALL",
+) {
+  return useTransactionHistory(walletService.getTransactions, page, size, category);
+}
+
+export function useSellerWalletTransactions(
+  page = 1,
+  size = 10,
+  category: WalletTransactionCategory = "ALL",
+) {
+  return useTransactionHistory(
+    walletService.getSellerTransactions,
+    page,
+    size,
+    category,
+  );
 }
 
 const EMPTY_DEPOSITS: PageResponse<DepositHistoryItem> = {

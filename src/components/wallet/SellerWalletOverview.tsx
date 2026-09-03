@@ -15,7 +15,7 @@ import { useState } from "react";
 import { SlicePagination } from "@/components/common/SlicePagination";
 import {
   useWalletSummary,
-  useWalletTransactions,
+  useSellerWalletTransactions,
 } from "@/hooks/api/useWallet";
 import { formatCurrency } from "@/lib/format";
 import type { WalletTransaction } from "@/types";
@@ -31,6 +31,9 @@ const TRANSACTION_LABELS: Record<string, string> = {
   CANCEL_HOLD: "Hủy khoản tạm giữ",
   WITHDRAW_PENDING: "Yêu cầu rút tiền",
   WITHDRAW_CANCEL: "Hoàn tiền yêu cầu rút",
+  WITHDRAW_DONE: "Đã rút tiền",
+  PLATFORM_FEE: "Phí dịch vụ sàn",
+  ADMIN_ADJUST: "Điều chỉnh bởi quản trị viên",
 };
 
 function transactionStatus(transactionType: string) {
@@ -66,7 +69,7 @@ export function SellerWalletOverview() {
     isLoading: areTransactionsLoading,
     error: transactionsError,
     refresh: refreshTransactions,
-  } = useWalletTransactions(page, 10);
+  } = useSellerWalletTransactions(page, 10);
 
   const refreshAll = () => {
     void refreshWallet();

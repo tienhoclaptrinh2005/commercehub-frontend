@@ -88,6 +88,20 @@ export const walletService = {
     );
   },
 
+  async getSellerTransactions(
+    page = 1,
+    size = 20,
+    category: WalletTransactionCategory = "ALL",
+  ): Promise<SliceResponse<WalletTransaction>> {
+    const response = await api.get<ApiResponse<WalletTransactionHistoryPayload>>(
+      "/api/v1/seller/wallet/transactions",
+      { params: { page, size, category } },
+    );
+    return normalizeTransactionHistory(
+      unwrapData(response.data, "Không nhận được lịch sử tài chính người bán"),
+    );
+  },
+
   async getDepositHistory(page = 1, size = 10): Promise<PageResponse<DepositHistoryItem>> {
     const response = await api.get<ApiResponse<PageResponse<DepositHistoryItem>>>(
       "/api/v1/wallet/deposit",
