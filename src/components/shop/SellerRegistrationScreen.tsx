@@ -132,7 +132,11 @@ export function SellerRegistrationScreen() {
         title="Không thể tải thông tin tài khoản"
         description={error || "Vui lòng kiểm tra kết nối và thử lại."}
         action={
-          <button type="button" onClick={() => void refresh()} className="font-bold text-emerald-700 underline">
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="font-bold text-emerald-700 underline"
+          >
             Thử tải lại
           </button>
         }
@@ -175,7 +179,10 @@ export function SellerRegistrationScreen() {
         title="Gian hàng đã được duyệt"
         description="Tài khoản đã có quyền SELLER và có thể sử dụng trang quản lý bán hàng."
         action={
-          <Link href="/seller" className="inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white">
+          <Link
+            href="/seller"
+            className="inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white"
+          >
             Quản lý gian hàng
           </Link>
         }
@@ -193,22 +200,42 @@ export function SellerRegistrationScreen() {
           Đăng ký bán hàng
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-          Gửi hồ sơ để quản trị viên xét duyệt trước khi bắt đầu kinh doanh sản phẩm số.
+          Gửi hồ sơ để quản trị viên xét duyệt trước khi bắt đầu kinh doanh sản
+          phẩm số.
         </p>
       </header>
 
-      <form onSubmit={submit} noValidate className="mx-auto mt-8 max-w-2xl space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-8">
-        <FormField id="shopName" label="Tên shop / Thương hiệu *" error={errors.name?.message}>
+      <form
+        onSubmit={submit}
+        noValidate
+        className="mx-auto mt-8 max-w-2xl space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-8"
+      >
+        <FormField
+          id="shopName"
+          label="Tên shop / Thương hiệu *"
+          error={errors.name?.message}
+        >
           <div className="relative">
             <Store className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
-            <Input id="shopName" maxLength={255} placeholder="Ví dụ: Tạp Hóa MMO Official" hasError={Boolean(errors.name)} {...register("name")} />
+            <Input
+              id="shopName"
+              maxLength={255}
+              placeholder="Ví dụ: Tạp Hóa MMO Official"
+              hasError={Boolean(errors.name)}
+              {...register("name")}
+            />
           </div>
           <p className="text-xs leading-5 text-slate-500">
-            Khi hồ sơ được duyệt, tên hiển thị của tài khoản sẽ đồng bộ với tên shop và không thể đổi lại.
+            Khi hồ sơ được duyệt, tên hiển thị của tài khoản sẽ đồng bộ với tên
+            shop và không thể đổi lại.
           </p>
         </FormField>
 
-        <FormField id="sellerUsername" label="Username của tài khoản *" error={errors.username?.message}>
+        <FormField
+          id="sellerUsername"
+          label="Username của tài khoản *"
+          error={errors.username?.message}
+        >
           <div className="relative">
             <CircleUserRound className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
             <Input
@@ -217,25 +244,45 @@ export function SellerRegistrationScreen() {
               placeholder="chodemofficial"
               readOnly={usernameLocked}
               hasError={Boolean(errors.username)}
-              className={usernameLocked ? "cursor-not-allowed bg-slate-100 text-slate-500" : undefined}
+              className={
+                usernameLocked
+                  ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                  : undefined
+              }
               {...register("username")}
             />
           </div>
-          <p className={`rounded-lg px-3 py-2 text-xs leading-5 ${usernameLocked ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-800"}`}>
+          <p
+            className={`rounded-lg px-3 py-2 text-xs leading-5 ${usernameLocked ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-800"}`}
+          >
             {usernameLocked
               ? "Bạn đã đổi username một lần rồi. Username hiện tại sẽ được dùng cho hồ sơ seller."
               : "Bạn có thể chọn username cuối cùng tại đây. Gửi hồ sơ sẽ chốt lượt đổi username duy nhất."}
           </p>
         </FormField>
 
-        <FormField id="contactInfo" label="Thông tin liên hệ (Zalo / Telegram / Facebook) *" error={errors.contactInfo?.message}>
+        <FormField
+          id="contactInfo"
+          label="Thông tin liên hệ (SDT Zalo /ID hoặc Username Telegram / Link hoặc ID Facebook) *"
+          error={errors.contactInfo?.message}
+        >
           <div className="relative">
             <ContactRound className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
-            <Input id="contactInfo" maxLength={255} placeholder="Để admin có thể liên hệ xác minh" hasError={Boolean(errors.contactInfo)} {...register("contactInfo")} />
+            <Input
+              id="contactInfo"
+              maxLength={255}
+              placeholder="Để admin có thể liên hệ xác minh"
+              hasError={Boolean(errors.contactInfo)}
+              {...register("contactInfo")}
+            />
           </div>
         </FormField>
 
-        <FormField id="applicationReason" label="Lý do đăng ký / Giới thiệu ngắn về nguồn hàng" error={errors.applicationReason?.message}>
+        <FormField
+          id="applicationReason"
+          label="Lý do đăng ký / Giới thiệu ngắn về nguồn hàng"
+          error={errors.applicationReason?.message}
+        >
           <textarea
             id="applicationReason"
             rows={5}
@@ -244,15 +291,28 @@ export function SellerRegistrationScreen() {
             className={`w-full resize-y rounded-xl border bg-white px-4 py-3 text-[15px] leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 ${errors.applicationReason ? "border-rose-400" : "border-slate-200"}`}
             {...register("applicationReason")}
           />
-          <p className="text-right text-xs text-slate-400">{reasonLength}/500 ký tự</p>
+          <p className="text-right text-xs text-slate-400">
+            {reasonLength}/500 ký tự
+          </p>
         </FormField>
 
         <div>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            <input type="checkbox" className="mt-1 size-4 rounded border-slate-300 accent-emerald-600" {...register("acceptedTerms")} />
-            <span>Tôi xác nhận thông tin cung cấp là chính xác và đồng ý với quy chế người bán của CommerceHub.</span>
+            <input
+              type="checkbox"
+              className="mt-1 size-4 rounded border-slate-300 accent-emerald-600"
+              {...register("acceptedTerms")}
+            />
+            <span>
+              Tôi xác nhận thông tin cung cấp là chính xác và đồng ý với quy chế
+              người bán của CommerceHub.
+            </span>
           </label>
-          {errors.acceptedTerms ? <p className="mt-2 text-xs font-medium text-rose-600">{errors.acceptedTerms.message}</p> : null}
+          {errors.acceptedTerms ? (
+            <p className="mt-2 text-xs font-medium text-rose-600">
+              {errors.acceptedTerms.message}
+            </p>
+          ) : null}
         </div>
 
         <Button type="submit" isLoading={isSubmitting}>
@@ -261,7 +321,8 @@ export function SellerRegistrationScreen() {
         </Button>
 
         <p className="text-center text-xs leading-5 text-slate-400">
-          Gửi yêu cầu không cấp quyền SELLER ngay. Tài khoản chỉ được nâng quyền sau khi quản trị viên duyệt.
+          Gửi yêu cầu không cấp quyền SELLER ngay. Tài khoản chỉ được nâng quyền
+          sau khi quản trị viên duyệt.
         </p>
       </form>
     </div>
@@ -269,7 +330,9 @@ export function SellerRegistrationScreen() {
 }
 
 function RegistrationLoading() {
-  return <div className="mx-auto my-14 h-[560px] max-w-2xl animate-pulse rounded-3xl border border-slate-200 bg-white" />;
+  return (
+    <div className="mx-auto my-14 h-[560px] max-w-2xl animate-pulse rounded-3xl border border-slate-200 bg-white" />
+  );
 }
 
 function StatusCard({
@@ -292,13 +355,35 @@ function StatusCard({
   return (
     <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-7 text-center shadow-xl shadow-slate-200/50 sm:p-10">
-        <span className={`mx-auto grid size-16 place-items-center rounded-2xl ${iconClass}`}><Icon className="size-8" /></span>
+        <span
+          className={`mx-auto grid size-16 place-items-center rounded-2xl ${iconClass}`}
+        >
+          <Icon className="size-8" />
+        </span>
         <h1 className="mt-5 text-2xl font-black text-slate-950">{title}</h1>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">{description}</p>
-        {loading ? <div className="mx-auto mt-6 h-24 max-w-md animate-pulse rounded-2xl bg-slate-100" /> : application ? (
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">
+          {description}
+        </p>
+        {loading ? (
+          <div className="mx-auto mt-6 h-24 max-w-md animate-pulse rounded-2xl bg-slate-100" />
+        ) : application ? (
           <dl className="mx-auto mt-6 grid max-w-md gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5 text-left text-sm sm:grid-cols-2">
-            <div><dt className="text-xs font-bold uppercase text-slate-400">Tên gian hàng</dt><dd className="mt-1 font-bold text-slate-800">{application.name}</dd></div>
-            <div><dt className="text-xs font-bold uppercase text-slate-400">Username</dt><dd className="mt-1 font-bold text-slate-800">@{application.username}</dd></div>
+            <div>
+              <dt className="text-xs font-bold uppercase text-slate-400">
+                Tên gian hàng
+              </dt>
+              <dd className="mt-1 font-bold text-slate-800">
+                {application.name}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase text-slate-400">
+                Username
+              </dt>
+              <dd className="mt-1 font-bold text-slate-800">
+                @{application.username}
+              </dd>
+            </div>
           </dl>
         ) : null}
         {action ? <div className="mt-7">{action}</div> : null}

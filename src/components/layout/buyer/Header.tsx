@@ -78,7 +78,7 @@ export function Header() {
             <BrandLogo />
 
             <form
-              action="/search"
+              action="/products"
               className="relative hidden md:block"
               role="search"
             >
@@ -87,8 +87,9 @@ export function Header() {
               </label>
               <input
                 id="site-search"
-                name="q"
+                name="keyword"
                 type="search"
+                maxLength={100}
                 placeholder="Tìm kiếm sản phẩm, dịch vụ, phần mềm..."
                 className="h-12 w-full rounded-lg border border-slate-300 bg-white pl-4 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
               />
@@ -113,7 +114,7 @@ export function Header() {
           </div>
 
           <form
-            action="/search"
+            action="/products"
             className="relative mt-4 md:hidden"
             role="search"
           >
@@ -122,8 +123,9 @@ export function Header() {
             </label>
             <input
               id="mobile-site-search"
-              name="q"
+              name="keyword"
               type="search"
+              maxLength={100}
               placeholder="Tìm kiếm sản phẩm, dịch vụ..."
               className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-4 pr-11 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
             />

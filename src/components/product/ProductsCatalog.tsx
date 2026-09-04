@@ -39,18 +39,21 @@ function getPriceBounds(product: ProductSummary): [number, number] {
 
 interface ProductsCatalogProps {
   initialCategoryId?: number;
+  initialKeyword?: string;
   deliveryType?: ProductDeliveryType;
   catalogLabel?: "sản phẩm" | "dịch vụ";
 }
 
 export function ProductsCatalog({
   initialCategoryId,
+  initialKeyword,
   deliveryType,
   catalogLabel = "sản phẩm",
 }: ProductsCatalogProps) {
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<CatalogFilterValues>(() => ({
     ...INITIAL_FILTERS,
+    keyword: initialKeyword ?? "",
     categoryId: initialCategoryId,
   }));
   const { categories, isLoading: categoriesLoading, error: categoriesError } =

@@ -448,13 +448,21 @@ function ProductDetailContent({ product }: { product: ProductDetail }) {
               {sellerProfileHref ? (
                 <Link
                   href={sellerProfileHref}
-                  className="truncate text-sm font-bold text-emerald-700 transition hover:text-emerald-800 hover:underline"
+                  className="flex min-w-0 items-center gap-2 text-sm font-bold text-emerald-700 transition hover:text-emerald-800 hover:underline"
                 >
-                  {product.shopName || `@${product.sellerUsername}`}
+                  <ShopAvatar
+                    name={product.shopName}
+                    avatarUrl={product.sellerAvatarUrl}
+                  />
+                  <span className="truncate">{product.shopName || "Chưa cập nhật"}</span>
                 </Link>
               ) : (
-                <span className="truncate text-sm font-bold text-emerald-700">
-                  {product.shopName || "Chưa cập nhật"}
+                <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-emerald-700">
+                  <ShopAvatar
+                    name={product.shopName}
+                    avatarUrl={product.sellerAvatarUrl}
+                  />
+                  <span className="truncate">{product.shopName || "Chưa cập nhật"}</span>
                 </span>
               )}
             </div>
@@ -476,6 +484,29 @@ function ProductDetailContent({ product }: { product: ProductDetail }) {
         currentProductId={product.id}
       />
     </div>
+  );
+}
+
+function ShopAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt={`Ảnh đại diện ${name || "gian hàng"}`}
+          className="size-full object-cover"
+        />
+      ) : (
+        name?.trim().charAt(0).toUpperCase() || "S"
+      )}
+    </span>
   );
 }
 

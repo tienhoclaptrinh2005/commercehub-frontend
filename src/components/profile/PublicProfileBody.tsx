@@ -96,8 +96,12 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
                   </div>
 
                   <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                    <span className="font-medium text-slate-500">@{profile.handle}</span>
-                    <span className="size-1 rounded-full bg-slate-300" />
+                    {!profile.sellerEnabled ? (
+                      <>
+                        <span className="font-medium text-slate-500">@{profile.handle}</span>
+                        <span className="size-1 rounded-full bg-slate-300" />
+                      </>
+                    ) : null}
                     <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
                       Thành viên cấp {profile.userLevel ?? 1}
                     </span>

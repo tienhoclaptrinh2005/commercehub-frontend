@@ -32,18 +32,23 @@ export default function PublicUserPage() {
   // Quyền bán hàng phải lấy từ role thật; cấp độ không thay thế phân quyền.
   const sellerEnabled = (profile.roles ?? []).includes("SELLER");
   const hasPublicShop = typeof profile.shopId === "number";
+  const hasActiveSellerIdentity = sellerEnabled && hasPublicShop;
 
   return (
     <PublicProfileBody
       profile={{
-        name: profile.fullName,
+        name: hasActiveSellerIdentity
+          ? profile.shopName || profile.fullName
+          : profile.fullName,
         handle: profile.username,
-        avatarUrl: profile.avatarUrl,
+        avatarUrl: hasActiveSellerIdentity
+          ? profile.shopAvatarUrl
+          : profile.avatarUrl,
         joinedAt: profile.createdAt,
         completedPurchaseCount: Number(profile.completedPurchaseCount ?? 0),
         successfulSaleCount: Number(profile.successfulSaleCount ?? 0),
         userLevel: profile.userLevel,
-        sellerEnabled,
+        sellerEnabled: hasActiveSellerIdentity,
         roles: profile.roles ?? [],
         statusLabel: "Đang hoạt động",
         messageHref: `/chat?username=${encodeURIComponent(profile.username)}`,

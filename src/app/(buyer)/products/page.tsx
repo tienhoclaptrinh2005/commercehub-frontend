@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 interface ProductsPageProps {
   searchParams: Promise<{
     categoryId?: string | string[];
+    keyword?: string | string[];
   }>;
 }
 
@@ -25,6 +26,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     parsedCategoryId && Number.isSafeInteger(parsedCategoryId) && parsedCategoryId > 0
       ? parsedCategoryId
       : undefined;
+  const rawKeyword = Array.isArray(params.keyword)
+    ? params.keyword[0]
+    : params.keyword;
+  const initialKeyword = rawKeyword?.trim().slice(0, 100) || undefined;
 
   return (
     <div className="bg-[#f4f7f6]">
@@ -46,8 +51,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
         <div className="mt-12">
           <ProductsCatalog
-            key={initialCategoryId ?? "all"}
+            key={`${initialCategoryId ?? "all"}:${initialKeyword ?? ""}`}
             initialCategoryId={initialCategoryId}
+            initialKeyword={initialKeyword}
           />
         </div>
       </div>

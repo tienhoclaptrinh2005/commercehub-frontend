@@ -112,7 +112,7 @@ export function ProductCard({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={product.sellerAvatarUrl}
-                  alt=""
+                  alt={`Ảnh đại diện ${product.shopName || "gian hàng"}`}
                   className="size-full object-cover"
                 />
               ) : (
@@ -124,7 +124,7 @@ export function ProductCard({
                 href={sellerProfileHref}
                 className="truncate font-semibold text-slate-700 transition hover:text-emerald-700 hover:underline"
               >
-                {product.shopName || `@${sellerUsername}`}
+                {product.shopName || "Chưa cập nhật"}
               </Link>
             ) : (
               <span className="truncate font-semibold text-slate-700">
@@ -226,21 +226,33 @@ export function ProductCard({
           </span>
         </div>
 
-        <p className="mt-2 truncate text-xs text-slate-500">
-          Người bán:{" "}
+        <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-slate-500">
+          <span className="shrink-0">Người bán:</span>
+          <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-bold text-white">
+            {product.sellerAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={product.sellerAvatarUrl}
+                alt={`Ảnh đại diện ${product.shopName || "gian hàng"}`}
+                className="size-full object-cover"
+              />
+            ) : (
+              getSellerInitial(product.shopName || "Shop")
+            )}
+          </span>
           {sellerProfileHref ? (
             <Link
               href={sellerProfileHref}
-              className="font-semibold text-emerald-700 transition hover:text-emerald-800 hover:underline"
+              className="truncate font-semibold text-emerald-700 transition hover:text-emerald-800 hover:underline"
             >
-              {sellerUsername ? `@${sellerUsername}` : product.shopName}
+              {product.shopName || "Chưa cập nhật"}
             </Link>
           ) : (
-            <span className="font-semibold text-emerald-700">
+            <span className="truncate font-semibold text-emerald-700">
               {product.shopName || "Chưa cập nhật"}
             </span>
           )}
-        </p>
+        </div>
 
         <p className="mt-auto pt-4 text-lg font-bold tracking-[-0.02em] text-emerald-700">
           {formatPriceRange(product)}

@@ -16,6 +16,8 @@ export interface PublicUserProfile {
   successfulSaleCount: number;
   roles: UserRole[];
   shopId: number | null;
+  shopName: string | null;
+  shopAvatarUrl: string | null;
 }
 
 export interface UserProfile {
