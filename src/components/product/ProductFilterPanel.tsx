@@ -22,6 +22,7 @@ interface ProductFilterPanelProps {
   categories: CategorySummary[];
   categoriesLoading?: boolean;
   categoriesError?: string | null;
+  catalogLabel?: "sản phẩm" | "dịch vụ";
   onApply: (filters: CatalogFilterValues) => void;
 }
 
@@ -110,6 +111,7 @@ export function ProductFilterPanel({
   categories,
   categoriesLoading = false,
   categoriesError,
+  catalogLabel = "sản phẩm",
   onApply,
 }: ProductFilterPanelProps) {
   const [draft, setDraft] = useState(value);
@@ -134,7 +136,7 @@ export function ProductFilterPanel({
       >
         <div>
           <label htmlFor="product-keyword" className="text-base font-bold text-slate-950">
-            Tìm kiếm sản phẩm
+            Tìm kiếm {catalogLabel}
           </label>
           <input
             id="product-keyword"
@@ -186,7 +188,7 @@ export function ProductFilterPanel({
                 }
                 className="size-4 rounded border-slate-300 accent-emerald-600"
               />
-              Tất cả sản phẩm
+              Tất cả {catalogLabel}
             </label>
 
             {categoriesLoading ? (

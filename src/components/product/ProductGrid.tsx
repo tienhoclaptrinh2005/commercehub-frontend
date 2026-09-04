@@ -10,6 +10,7 @@ interface ProductGridProps {
   error: string | null;
   onRetry: () => void;
   hasFilters?: boolean;
+  catalogLabel?: "sản phẩm" | "dịch vụ";
 }
 
 export function ProductGrid({
@@ -18,12 +19,13 @@ export function ProductGrid({
   error,
   onRetry,
   hasFilters = false,
+  catalogLabel = "sản phẩm",
 }: ProductGridProps) {
   if (isLoading) {
     return (
       <div
         className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-        aria-label="Đang tải sản phẩm"
+        aria-label={`Đang tải ${catalogLabel}`}
       >
         {Array.from({ length: 6 }, (_, index) => (
           <div
@@ -51,7 +53,7 @@ export function ProductGrid({
           <AlertCircle className="size-6" />
         </span>
         <h2 className="mt-4 text-lg font-bold text-slate-950">
-          Không thể tải sản phẩm
+          Không thể tải {catalogLabel}
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
           {error}
@@ -75,12 +77,14 @@ export function ProductGrid({
           <PackageOpen className="size-7" />
         </span>
         <h2 className="mt-4 text-lg font-bold text-slate-950">
-          {hasFilters ? "Không tìm thấy sản phẩm phù hợp" : "Chưa có sản phẩm"}
+          {hasFilters
+            ? `Không tìm thấy ${catalogLabel} phù hợp`
+            : `Chưa có ${catalogLabel}`}
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
           {hasFilters
             ? "Hãy thử thay đổi từ khóa, danh mục hoặc khoảng giá."
-            : "Sản phẩm mới sẽ được hiển thị tại đây khi người bán đăng bán."}
+            : `${catalogLabel === "dịch vụ" ? "Dịch vụ" : "Sản phẩm"} mới sẽ được hiển thị tại đây khi người bán đăng bán.`}
         </p>
       </div>
     );

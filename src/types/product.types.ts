@@ -1,4 +1,5 @@
 export type ProductStatus = "ACTIVE" | "INACTIVE" | "DELETED";
+export type ProductDeliveryType = "INSTANT" | "PRE_ORDER";
 
 export interface ProductVariant {
   id: number;
@@ -33,7 +34,7 @@ export interface ProductSummary {
   shortDescription: string | null;
   description: string | null;
   productType: string;
-  deliveryType: string;
+  deliveryType: ProductDeliveryType;
   status: ProductStatus;
   soldCount: number;
   averageRating: number;
@@ -59,7 +60,7 @@ export interface ProductDetail {
   shortDescription: string | null;
   description: string | null;
   productType: string;
-  deliveryType: string;
+  deliveryType: ProductDeliveryType;
   status: ProductStatus;
   soldCount: number;
   failedDisputeCount: number;
@@ -98,4 +99,5 @@ export interface ProductListFilters {
   keyword?: string;
   categoryId?: number;
   shopId?: number;
+  deliveryType?: ProductDeliveryType;
 }

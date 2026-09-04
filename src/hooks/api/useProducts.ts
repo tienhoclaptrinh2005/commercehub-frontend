@@ -25,6 +25,7 @@ export function useProducts({
   keyword,
   categoryId,
   shopId,
+  deliveryType,
 }: UseProductsOptions = {}) {
   const [reloadKey, setReloadKey] = useState(0);
   const normalizedKeyword = keyword?.trim() || undefined;
@@ -34,6 +35,7 @@ export function useProducts({
     keyword: normalizedKeyword,
     categoryId,
     shopId,
+    deliveryType,
     reloadKey,
   });
   const [state, setState] = useState<{
@@ -53,8 +55,11 @@ export function useProducts({
       keyword: normalizedKeyword,
       categoryId,
       shopId,
+      deliveryType,
     };
-    const hasFilters = Boolean(normalizedKeyword || categoryId || shopId);
+    const hasFilters = Boolean(
+      normalizedKeyword || categoryId || shopId || deliveryType,
+    );
 
     const request = hasFilters
       ? productService.search(filters, page, size)
@@ -91,7 +96,7 @@ export function useProducts({
       isCancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [categoryId, normalizedKeyword, page, requestKey, shopId, size]);
+  }, [categoryId, deliveryType, normalizedKeyword, page, requestKey, shopId, size]);
 
   const refresh = useCallback(() => {
     setReloadKey((current) => current + 1);

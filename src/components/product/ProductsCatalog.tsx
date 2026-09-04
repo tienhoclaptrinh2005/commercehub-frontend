@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { Pagination } from "@/components/common/Pagination";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useProducts } from "@/hooks/api/useProducts";
-import type { ProductSummary } from "@/types";
+import type { ProductDeliveryType, ProductSummary } from "@/types";
 
 import {
   ProductFilterPanel,
@@ -39,9 +39,15 @@ function getPriceBounds(product: ProductSummary): [number, number] {
 
 interface ProductsCatalogProps {
   initialCategoryId?: number;
+  deliveryType?: ProductDeliveryType;
+  catalogLabel?: "sản phẩm" | "dịch vụ";
 }
 
-export function ProductsCatalog({ initialCategoryId }: ProductsCatalogProps) {
+export function ProductsCatalog({
+  initialCategoryId,
+  deliveryType,
+  catalogLabel = "sản phẩm",
+}: ProductsCatalogProps) {
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<CatalogFilterValues>(() => ({
     ...INITIAL_FILTERS,
@@ -54,6 +60,7 @@ export function ProductsCatalog({ initialCategoryId }: ProductsCatalogProps) {
     size: PAGE_SIZE,
     keyword: filters.keyword || undefined,
     categoryId: filters.categoryId,
+    deliveryType,
   });
 
   const visibleProducts = useMemo(() => {
@@ -97,6 +104,7 @@ export function ProductsCatalog({ initialCategoryId }: ProductsCatalogProps) {
         categories={categories}
         categoriesLoading={categoriesLoading}
         categoriesError={categoriesError}
+        catalogLabel={catalogLabel}
         onApply={handleApplyFilters}
       />
 
@@ -105,14 +113,14 @@ export function ProductsCatalog({ initialCategoryId }: ProductsCatalogProps) {
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <SlidersHorizontal className="size-4 text-emerald-600" />
             {isLoading ? (
-              <span>Đang tải sản phẩm...</span>
+              <span>Đang tải {catalogLabel}...</span>
             ) : hasPriceFilter ? (
               <span>
-                Hiển thị <strong className="text-slate-900">{visibleProducts.length}</strong> sản phẩm phù hợp trên trang này
+                Hiển thị <strong className="text-slate-900">{visibleProducts.length}</strong> {catalogLabel} phù hợp trên trang này
               </span>
             ) : (
               <span>
-                Có <strong className="text-slate-900">{new Intl.NumberFormat("vi-VN").format(result.totalElements)}</strong> sản phẩm
+                Có <strong className="text-slate-900">{new Intl.NumberFormat("vi-VN").format(result.totalElements)}</strong> {catalogLabel}
               </span>
             )}
           </div>
@@ -125,6 +133,7 @@ export function ProductsCatalog({ initialCategoryId }: ProductsCatalogProps) {
           error={error}
           onRetry={refresh}
           hasFilters={hasFilters}
+          catalogLabel={catalogLabel}
         />
 
         {!error && !isLoading && !hasPriceFilter ? (
