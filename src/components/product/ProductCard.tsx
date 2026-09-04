@@ -159,7 +159,7 @@ export function ProductCard({
                 href={`/products/${product.slug}`}
                 className="inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-emerald-500 px-4 text-sm font-bold uppercase tracking-[0.04em] text-white transition hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20"
               >
-                {product.deliveryType === "PRE_ORDER" ? "Đặt ngay" : "Mua ngay"}
+                {product.deliveryType === "PRE_ORDER" ? "Đặt hàng" : "Mua ngay"}
               </Link>
               <Link
                 href={`/products/${product.slug}`}

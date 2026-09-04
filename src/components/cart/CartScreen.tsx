@@ -158,7 +158,7 @@ export function CartScreen() {
     setRetryKey(idempotencyKey);
     clearError();
     try {
-      const orderIds = await checkout({
+      const orders = await checkout({
         idempotencyKey,
         buyerInputs: cart.items
           .filter((item) => item.deliveryType === "PRE_ORDER")
@@ -175,9 +175,19 @@ export function CartScreen() {
         title: "Thanh toán giỏ hàng thành công",
         description: "Giỏ hàng đã được tách thành các đơn tương ứng và gửi tới từng shop.",
         details: (
-          <p className="text-center">
-            Mã đơn: <strong className="text-slate-950">{orderIds.map((id) => `#${id}`).join(", ")}</strong>
-          </p>
+          <div className="space-y-2 text-center">
+            {orders.map((order) => (
+              <p key={order.orderCode} className="break-all">
+                <span className="font-semibold text-slate-500">Mã đơn: </span>
+                <Link
+                  href={`/orders/${encodeURIComponent(order.orderCode)}`}
+                  className="font-black text-emerald-700 transition hover:text-emerald-800 hover:underline"
+                >
+                  {order.orderCode}
+                </Link>
+              </p>
+            ))}
+          </div>
         ),
         confirmLabel: "Hoàn tất",
       });

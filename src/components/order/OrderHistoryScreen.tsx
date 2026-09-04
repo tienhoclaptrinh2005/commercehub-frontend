@@ -347,7 +347,7 @@ export function OrderHistoryScreen() {
 
                   <div className="mt-4 flex justify-end">
                     <Link
-                      href={`/orders/${order.id}`}
+                      href={`/orders/${encodeURIComponent(order.orderCode)}`}
                       className="inline-flex h-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
                     >
                       Xem chi tiết

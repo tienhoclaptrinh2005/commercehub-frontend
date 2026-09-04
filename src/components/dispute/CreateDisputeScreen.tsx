@@ -10,11 +10,11 @@ import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
 
 interface CreateDisputeScreenProps {
-  orderId: number;
+  orderCode: string;
   orderItemId: number;
 }
 
-export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScreenProps) {
+export function CreateDisputeScreen({ orderCode, orderItemId }: CreateDisputeScreenProps) {
   const router = useRouter();
   const modal = useAppModal();
   const [reason, setReason] = useState("");
@@ -22,7 +22,9 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validIds = Number.isSafeInteger(orderId) && orderId > 0
+  const normalizedOrderCode = orderCode.trim();
+  const validIds = normalizedOrderCode.length > 0
+    && normalizedOrderCode.length <= 50
     && Number.isSafeInteger(orderItemId) && orderItemId > 0;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -56,7 +58,7 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
       description: "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại. Mỗi sản phẩm trong đơn chỉ được khiếu nại một lần.",
       details: (
         <dl className="space-y-1.5">
-          <div className="flex justify-between gap-4"><dt className="text-slate-500">Đơn hàng</dt><dd className="font-bold">#{orderId}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-slate-500">Đơn hàng</dt><dd className="break-all text-right font-bold">{normalizedOrderCode}</dd></div>
           <div className="flex justify-between gap-4"><dt className="text-slate-500">Sản phẩm trong đơn</dt><dd className="font-bold">#{orderItemId}</dd></div>
           <div className="flex justify-between gap-4"><dt className="text-slate-500">Bằng chứng</dt><dd className="font-bold">{evidenceUrls.length} đường dẫn</dd></div>
         </dl>
@@ -68,7 +70,7 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
     setSubmitting(true);
     setError(null);
     try {
-      const dispute = await disputeService.create(orderId, orderItemId, {
+      const dispute = await disputeService.create(normalizedOrderCode, orderItemId, {
         reason: trimmedReason,
         evidenceUrls,
       });
@@ -92,7 +94,7 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-6 lg:p-8">
-      <Link href={`/orders/${orderId}`} className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700">
+      <Link href={`/orders/${encodeURIComponent(normalizedOrderCode)}`} className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700">
         <ArrowLeft className="size-4" />Quay lại đơn hàng
       </Link>
 
@@ -100,7 +102,7 @@ export function CreateDisputeScreen({ orderId, orderItemId }: CreateDisputeScree
         <div className="flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700"><Scale className="size-5" /></span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-violet-700">Đơn #{orderId} · Item #{orderItemId}</p>
+            <p className="break-all text-xs font-bold uppercase tracking-widest text-violet-700">Đơn {normalizedOrderCode} · Item #{orderItemId}</p>
             <h1 className="mt-1 text-2xl font-black text-slate-950">Tạo khiếu nại</h1>
             <p className="mt-2 text-sm leading-6 text-slate-500">Chỉ đơn đang giữ tiền và còn thời hạn T+7 mới có thể khiếu nại.</p>
           </div>

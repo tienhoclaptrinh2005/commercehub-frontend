@@ -1,10 +1,10 @@
-import type { ApiResponse, CheckoutRequest } from "@/types";
+import type { ApiResponse, CheckoutOrderReference, CheckoutRequest } from "@/types";
 
 import { api } from "./api";
 
 export const checkoutService = {
-  async checkout(request: CheckoutRequest): Promise<number[]> {
-    const response = await api.post<ApiResponse<number[]>>(
+  async checkout(request: CheckoutRequest): Promise<CheckoutOrderReference[]> {
+    const response = await api.post<ApiResponse<CheckoutOrderReference[]>>(
       "/api/v1/checkout/checkout",
       request,
     );

@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   Cart,
   CartCheckoutRequest,
+  CheckoutOrderReference,
   UpdateCartItemRequest,
 } from "@/types";
 
@@ -54,8 +55,8 @@ export const cartService = {
     }
   },
 
-  async checkout(request: CartCheckoutRequest): Promise<number[]> {
-    const response = await api.post<ApiResponse<number[]>>(
+  async checkout(request: CartCheckoutRequest): Promise<CheckoutOrderReference[]> {
+    const response = await api.post<ApiResponse<CheckoutOrderReference[]>>(
       "/api/v1/cart/checkout",
       request,
     );

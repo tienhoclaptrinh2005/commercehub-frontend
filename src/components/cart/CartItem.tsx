@@ -1,7 +1,6 @@
 import {
   Clock3,
   ImageIcon,
-  Info,
   MessageSquareText,
   Minus,
   Plus,
@@ -150,23 +149,17 @@ export function CartItem({
             Thông tin gửi shop
             <span className="font-normal text-slate-400">(không bắt buộc)</span>
           </label>
-          {item.orderInstructions ? (
-            <p className="mt-1 flex items-start gap-1.5 text-xs leading-5 text-amber-800">
-              <Info className="mt-0.5 size-3.5 shrink-0" />
-              Shop yêu cầu: {item.orderInstructions}
-            </p>
-          ) : null}
           <textarea
             id={`buyer-input-${item.id}`}
             value={buyerInput}
             onChange={(event) => onBuyerInputChange(event.target.value)}
-            maxLength={200}
+            maxLength={100}
             rows={3}
             placeholder="Ví dụ: email@example.com — Nhờ shop xử lý theo yêu cầu..."
             className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
           />
           <p className="mt-1 text-right text-[11px] text-slate-400">
-            {buyerInput.length}/200 ký tự
+            {buyerInput.length}/100 ký tự
           </p>
         </div>
       ) : null}

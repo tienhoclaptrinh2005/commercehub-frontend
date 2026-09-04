@@ -12,6 +12,11 @@ export interface OrderSummary {
   placedAt: string;
 }
 
+/** Kết quả checkout chỉ dùng mã đơn công khai. */
+export interface CheckoutOrderReference {
+  orderCode: string;
+}
+
 export interface PreOrderItemDetail {
   status: string;
   buyerInputs: string | null;

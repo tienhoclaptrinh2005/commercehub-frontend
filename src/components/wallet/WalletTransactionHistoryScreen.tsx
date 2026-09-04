@@ -87,10 +87,10 @@ function balanceLabel(value: string) {
 
 function orderHref(transaction: WalletTransaction) {
   if (
-    transaction.referenceId &&
+    transaction.referenceCode &&
     ["ORDER_PAYMENT", "ORDER_REFUND"].includes(transaction.transactionType)
   ) {
-    return `/orders/${transaction.referenceId}`;
+    return `/orders/${encodeURIComponent(transaction.referenceCode)}`;
   }
   return null;
 }

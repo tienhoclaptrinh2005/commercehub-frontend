@@ -7,11 +7,11 @@ export const metadata: Metadata = { title: "Tạo khiếu nại" };
 
 export default async function CreateDisputePage({
   params,
-}: PageProps<"/orders/[orderId]/items/[itemId]/complain">) {
-  const { orderId, itemId } = await params;
+}: PageProps<"/orders/[orderCode]/items/[itemId]/complain">) {
+  const { orderCode, itemId } = await params;
   return (
     <ProtectedRoute>
-      <CreateDisputeScreen orderId={Number(orderId)} orderItemId={Number(itemId)} />
+      <CreateDisputeScreen orderCode={orderCode} orderItemId={Number(itemId)} />
     </ProtectedRoute>
   );
 }

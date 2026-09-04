@@ -11,7 +11,8 @@ import {
   Tag,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useMemo, useRef, useState } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -39,15 +40,17 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         .sort((left, right) => left.sortOrder - right.sortOrder),
     [product.variants],
   );
-  const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(
-    activeVariants[0]?.id,
-  );
+  const [selectedVariantId, setSelectedVariantId] = useState<
+    number | undefined
+  >(activeVariants[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [voucherCode, setVoucherCode] = useState("");
-  const [buyerInputs, setBuyerInputs] = useState("");
+  const buyerInputsRef = useRef("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(null);
+  const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(
+    null,
+  );
   const selectedVariant = activeVariants.find(
     (variant) => variant.id === selectedVariantId,
   );
@@ -59,13 +62,12 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   );
   const maxQuantity = isInstant ? Math.max(availableStock, 1) : 99;
   const unavailable =
-    product.status !== "ACTIVE" ||
-    !selectedVariant ||
-    outOfStock;
+    product.status !== "ACTIVE" || !selectedVariant || outOfStock;
 
   function selectVariant(variantId: number) {
     setSelectedVariantId(variantId);
     setQuantity(1);
+    buyerInputsRef.current = "";
     setRetryIdempotencyKey(null);
   }
 
@@ -79,31 +81,31 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     const confirmed = await modal.confirm({
       title: isPreOrder ? "Xác nhận đặt hàng" : "Xác nhận mua hàng",
       description: isPreOrder
-        ? "Thông tin bạn nhập sẽ được gửi cho shop sau khi thanh toán."
+        ? "Kiểm tra thông tin và gửi yêu cầu đặt hàng tới shop."
         : "Vui lòng kiểm tra lại sản phẩm trước khi thanh toán.",
       details: (
-        <dl className="space-y-1.5">
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Sản phẩm</dt>
-            <dd className="text-right font-bold text-slate-900">{product.name}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Phân loại</dt>
-            <dd className="text-right font-semibold">{selectedVariant.name}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Số lượng</dt>
-            <dd className="font-semibold">{quantity}</dd>
-          </div>
-          <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
-            <dt className="font-bold text-slate-700">Tổng tiền</dt>
-            <dd className="font-black text-emerald-700">
-              {formatCurrency(Number(selectedVariant.price) * quantity)}
-            </dd>
-          </div>
-        </dl>
+        <>
+          <OrderCheckoutSummary
+            productName={product.name}
+            variantName={selectedVariant.name}
+            quantity={quantity}
+            total={Number(selectedVariant.price) * quantity}
+          />
+          {isPreOrder ? (
+            <PreOrderCheckoutFields
+              initialValue={buyerInputsRef.current}
+              maxProcessingHours={
+                product.preOrderConfig?.maxProcessingHours ?? 24
+              }
+              onChange={(value) => {
+                buyerInputsRef.current = value;
+                setRetryIdempotencyKey(null);
+              }}
+            />
+          ) : null}
+        </>
       ),
-      confirmLabel: isPreOrder ? "Đồng ý đặt hàng" : "Đồng ý mua",
+      confirmLabel: isPreOrder ? "Xác nhận đặt hàng" : "Đồng ý mua",
     });
     if (!confirmed) return;
 
@@ -111,12 +113,16 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     setRetryIdempotencyKey(idempotencyKey);
     setIsCheckingOut(true);
     try {
-      const orderIds = await checkoutService.checkout({
-        items: [{
-          productVariantId: selectedVariant.id,
-          quantity,
-          buyerInputs: isPreOrder ? buyerInputs.trim() || undefined : undefined,
-        }],
+      const orders = await checkoutService.checkout({
+        items: [
+          {
+            productVariantId: selectedVariant.id,
+            quantity,
+            buyerInputs: isPreOrder
+              ? buyerInputsRef.current.trim() || undefined
+              : undefined,
+          },
+        ],
         paymentMethod: "WALLET",
         idempotencyKey,
       });
@@ -128,9 +134,19 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           ? "Đơn hàng đã được gửi tới shop và đang chờ shop xác nhận xử lý."
           : "Thanh toán đã hoàn tất. Bạn có thể xem thông tin giao hàng trong lịch sử đơn hàng.",
         details: (
-          <p className="text-center">
-            Mã đơn: <strong className="text-slate-950">{orderIds.map((id) => `#${id}`).join(", ")}</strong>
-          </p>
+          <div className="space-y-2 text-center">
+            {orders.map((order) => (
+              <p key={order.orderCode} className="break-all">
+                <span className="font-semibold text-slate-500">Mã đơn: </span>
+                <Link
+                  href={`/orders/${encodeURIComponent(order.orderCode)}`}
+                  className="font-black text-emerald-700 transition hover:text-emerald-800 hover:underline"
+                >
+                  {order.orderCode}
+                </Link>
+              </p>
+            ))}
+          </div>
         ),
         confirmLabel: "Hoàn tất",
       });
@@ -139,7 +155,10 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       // sẽ trả lại đúng order cũ thay vì trừ tiền lần hai.
       modal.showError({
         title: isPreOrder ? "Đặt hàng chưa thành công" : "Thanh toán thất bại",
-        description: getApiErrorMessage(requestError, "Không thể thanh toán đơn hàng"),
+        description: getApiErrorMessage(
+          requestError,
+          "Không thể thanh toán đơn hàng",
+        ),
         details: (
           <p className="text-xs text-slate-500">
             Bạn có thể thử lại. Hệ thống giữ nguyên mã chống trừ tiền hai lần.
@@ -170,7 +189,10 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     } catch (requestError) {
       modal.showError({
         title: "Không thể thêm vào giỏ",
-        description: getApiErrorMessage(requestError, "Không thể thêm sản phẩm vào giỏ"),
+        description: getApiErrorMessage(
+          requestError,
+          "Không thể thêm sản phẩm vào giỏ",
+        ),
         confirmLabel: "Đã hiểu",
       });
     } finally {
@@ -212,51 +234,6 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           onSelect={selectVariant}
         />
       </div>
-
-      {isPreOrder ? (
-        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          <p className="flex items-center gap-2 font-bold">
-            <Clock3 className="size-4" />
-            Xử lý trong tối đa {product.preOrderConfig?.maxProcessingHours ?? 24} giờ
-          </p>
-          <p className="mt-1 text-amber-800">
-            Đây là sản phẩm dịch vụ (đặt hàng). Sau khi thanh toán, vui lòng liên hệ shop hoặc đợi shop hoàn thành đơn.
-          </p>
-        </div>
-      ) : null}
-
-      {isPreOrder ? (
-        <div className="mt-5">
-          <label
-            htmlFor="product-buyer-inputs"
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.06em] text-slate-600"
-          >
-            <MessageSquareText className="size-4 text-emerald-600" />
-            Thông tin gửi shop
-            <span className="font-normal normal-case tracking-normal text-slate-400">(không bắt buộc)</span>
-          </label>
-          {product.preOrderConfig?.orderInstructions ? (
-            <p className="mt-2 text-xs leading-5 text-amber-800">
-              Shop yêu cầu: {product.preOrderConfig.orderInstructions}
-            </p>
-          ) : null}
-          <textarea
-            id="product-buyer-inputs"
-            value={buyerInputs}
-            onChange={(event) => {
-              setBuyerInputs(event.target.value);
-              setRetryIdempotencyKey(null);
-            }}
-            rows={3}
-            maxLength={200}
-            placeholder="Nhập email hoặc vài dòng nhắn cho shop..."
-            className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-          />
-          <p className="mt-1 text-right text-[11px] text-slate-400">
-            {buyerInputs.length}/200 ký tự
-          </p>
-        </div>
-      ) : null}
 
       <div className="mt-7">
         <div className="flex items-center justify-between gap-4">
@@ -347,11 +324,16 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           className="inline-flex h-13 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-black uppercase tracking-[0.04em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
         >
           {isCheckingOut ? (
-            <><LoaderCircle className="mr-2 size-4 animate-spin" />Đang thanh toán...</>
+            <>
+              <LoaderCircle className="mr-2 size-4 animate-spin" />
+              {isPreOrder ? "Đang đặt hàng..." : "Đang thanh toán..."}
+            </>
           ) : outOfStock ? (
             "Hết hàng"
           ) : unavailable ? (
             "Ngừng bán"
+          ) : isPreOrder ? (
+            "Đặt hàng"
           ) : (
             "Mua ngay"
           )}
@@ -363,5 +345,92 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         Thanh toán bằng số dư ví, giao dịch được hệ thống bảo vệ
       </p>
     </section>
+  );
+}
+
+function OrderCheckoutSummary({
+  productName,
+  variantName,
+  quantity,
+  total,
+}: {
+  productName: string;
+  variantName: string;
+  quantity: number;
+  total: number;
+}) {
+  return (
+    <dl className="space-y-1.5">
+      <div className="flex justify-between gap-4">
+        <dt className="text-slate-500">Sản phẩm</dt>
+        <dd className="text-right font-bold text-slate-900">{productName}</dd>
+      </div>
+      <div className="flex justify-between gap-4">
+        <dt className="text-slate-500">Phân loại</dt>
+        <dd className="text-right font-semibold">{variantName}</dd>
+      </div>
+      <div className="flex justify-between gap-4">
+        <dt className="text-slate-500">Số lượng</dt>
+        <dd className="font-semibold">{quantity}</dd>
+      </div>
+      <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
+        <dt className="font-bold text-slate-700">Tổng tiền</dt>
+        <dd className="font-black text-emerald-700">{formatCurrency(total)}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function PreOrderCheckoutFields({
+  initialValue,
+  maxProcessingHours,
+  onChange,
+}: {
+  initialValue: string;
+  maxProcessingHours: number;
+  onChange: (value: string) => void;
+}) {
+  const [value, setValue] = useState(initialValue);
+
+  return (
+    <div className="mt-4 border-t border-slate-200 pt-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900">
+        <p className="flex items-center gap-2 font-bold">
+          <Clock3 className="size-4 shrink-0" />
+          Xử lý trong tối đa {maxProcessingHours} giờ
+        </p>
+        <p className="mt-1 text-xs leading-5 text-amber-800">
+          Đây là sản phẩm dịch vụ (đặt hàng). Sau khi thanh toán, vui lòng liên
+          hệ shop hoặc đợi shop hoàn thành đơn.
+        </p>
+      </div>
+
+      <label
+        htmlFor="pre-order-checkout-buyer-inputs"
+        className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.05em] text-slate-700"
+      >
+        <MessageSquareText className="size-4 text-emerald-600" />
+        Thông tin gửi shop
+        <span className="font-normal normal-case tracking-normal text-slate-400">
+          (không bắt buộc)
+        </span>
+      </label>
+      <textarea
+        id="pre-order-checkout-buyer-inputs"
+        value={value}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setValue(nextValue);
+          onChange(nextValue);
+        }}
+        rows={3}
+        maxLength={100}
+        placeholder="Nhập email hoặc vài dòng nhắn cho shop..."
+        className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+      />
+      <p className="mt-1 text-right text-[11px] text-slate-400">
+        {value.length}/100 ký tự
+      </p>
+    </div>
   );
 }

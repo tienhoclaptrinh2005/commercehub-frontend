@@ -51,16 +51,16 @@ export const orderService = {
     return unwrapData(response.data, "Không nhận được lịch sử đơn hàng");
   },
 
-  async getDetail(orderId: number): Promise<OrderDetail> {
+  async getDetail(orderCode: string): Promise<OrderDetail> {
     const response = await api.get<ApiResponse<OrderDetail>>(
-      `/api/v1/orders/${orderId}`,
+      `/api/v1/orders/${encodeURIComponent(orderCode)}`,
     );
     return unwrapData(response.data, "Không nhận được chi tiết đơn hàng");
   },
 
-  async getDeliveredAssets(orderId: number): Promise<DeliveredAsset[]> {
+  async getDeliveredAssets(orderCode: string): Promise<DeliveredAsset[]> {
     const response = await api.get<ApiResponse<DeliveredAsset[]>>(
-      `/api/v1/orders/${orderId}/assets`,
+      `/api/v1/orders/${encodeURIComponent(orderCode)}/assets`,
     );
     return unwrapData(response.data, "Không nhận được nội dung giao hàng");
   },

@@ -18,9 +18,9 @@ export const disputeService = {
     return (await api.get<Dispute>(`/api/v1/disputes/${id}`)).data;
   },
 
-  async create(orderId: number, orderItemId: number, payload: CreateDisputeRequest) {
+  async create(orderCode: string, orderItemId: number, payload: CreateDisputeRequest) {
     return (await api.post<Dispute>(
-      `/api/v1/orders/${orderId}/items/${orderItemId}/complain`,
+      `/api/v1/orders/${encodeURIComponent(orderCode)}/items/${orderItemId}/complain`,
       payload,
     )).data;
   },

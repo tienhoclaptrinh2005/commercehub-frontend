@@ -48,8 +48,8 @@ function readableStatus(status: string): string {
   return labels[status] ?? status.replaceAll("_", " ");
 }
 
-export function OrderDetailScreen({ orderId }: { orderId: number }) {
-  const { order, assets, error, isLoading, refresh } = useOrder(orderId);
+export function OrderDetailScreen({ orderCode }: { orderCode: string }) {
+  const { order, assets, error, isLoading, refresh } = useOrder(orderCode);
   const [revealedAssets, setRevealedAssets] = useState<Set<number>>(new Set());
   const [revealedPreOrders, setRevealedPreOrders] = useState<Set<number>>(new Set());
   const [copiedAssetId, setCopiedAssetId] = useState<number | null>(null);
@@ -304,7 +304,7 @@ export function OrderDetailScreen({ orderId }: { orderId: number }) {
                       <Scale className="size-4" /> Xem khiếu nại
                     </Link>
                   ) : item.complaintAllowed ? (
-                    <Link href={`/orders/${order.id}/items/${item.id}/complain`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-100">
+                    <Link href={`/orders/${encodeURIComponent(order.orderCode)}/items/${item.id}/complain`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-100">
                       <Scale className="size-4" /> Khiếu nại đơn hàng
                     </Link>
                   ) : null}

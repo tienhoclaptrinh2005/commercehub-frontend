@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { getApiErrorMessage } from "@/services/api";
 import { cartService } from "@/services/cart.service";
-import type { Cart, CartCheckoutRequest } from "@/types";
+import type { Cart, CartCheckoutRequest, CheckoutOrderReference } from "@/types";
 
 const EMPTY_CART: Cart = {
   cartId: null,
@@ -25,7 +25,7 @@ interface CartState {
   updateQuantity: (itemId: number, quantity: number) => Promise<Cart>;
   removeItem: (itemId: number) => Promise<Cart>;
   clearCart: () => Promise<void>;
-  checkout: (request: CartCheckoutRequest) => Promise<number[]>;
+  checkout: (request: CartCheckoutRequest) => Promise<CheckoutOrderReference[]>;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -123,9 +123,9 @@ export const useCartStore = create<CartState>((set, get) => ({
   checkout: async (request) => {
     set({ isMutating: true, error: null });
     try {
-      const orderIds = await cartService.checkout(request);
+      const orders = await cartService.checkout(request);
       set((state) => ({ cart: { ...EMPTY_CART, cartId: state.cart.cartId } }));
-      return orderIds;
+      return orders;
     } catch (error) {
       set({ error: getApiErrorMessage(error, "Không thể thanh toán giỏ hàng") });
       throw error;

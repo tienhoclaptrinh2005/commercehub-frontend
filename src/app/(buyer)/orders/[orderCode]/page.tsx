@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 
 export default async function OrderDetailPage({
   params,
-}: PageProps<"/orders/[orderId]">) {
-  const { orderId } = await params;
+}: PageProps<"/orders/[orderCode]">) {
+  const { orderCode } = await params;
   return (
     <ProtectedRoute>
-      <OrderDetailScreen orderId={Number(orderId)} />
+      <OrderDetailScreen orderCode={orderCode} />
     </ProtectedRoute>
   );
 }
