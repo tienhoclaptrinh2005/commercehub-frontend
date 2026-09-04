@@ -154,7 +154,7 @@ export function AuthStatus() {
       return { href: "/seller", label: "Quản lý gian hàng", icon: Store };
     }
     return {
-      href: "/seller/shop/setup",
+      href: "/seller-register",
       label: "Đăng ký bán hàng",
       icon: Store,
     };

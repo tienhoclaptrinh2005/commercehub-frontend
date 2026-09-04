@@ -4,10 +4,7 @@ export type ShopStatus =
   | "PENDING"
   | "ACTIVE"
   | "REJECTED"
-  | "INACTIVE"
-  | "SUSPENDED"
-  | "BANNED"
-  | "CLOSED";
+  | "BANNED";
 
 export interface PublicUserProfile {
   username: string;

@@ -68,7 +68,10 @@ export function ProfileEditForm() {
     resetAvatar({ avatarUrl: profile.avatarUrl || "" });
   }, [profile, reset, resetAvatar]);
 
-  const isUsernameLocked = profile?.usernameChangeAllowed === false;
+  const isSellerIdentityLocked =
+    profile?.roles.includes("SELLER") && profile.shopStatus === "ACTIVE";
+  const isUsernameLocked =
+    profile?.usernameChangeAllowed === false || isSellerIdentityLocked;
 
   const syncHeaderIdentity = (nextProfile: UserProfile) => {
     const session = readAuthSession();
@@ -370,12 +373,23 @@ export function ProfileEditForm() {
                 autoComplete="name"
                 placeholder="Nguyễn Văn An"
                 hasError={Boolean(errors.fullName)}
+                readOnly={isSellerIdentityLocked}
+                className={
+                  isSellerIdentityLocked
+                    ? "cursor-not-allowed bg-slate-50 text-slate-500"
+                    : undefined
+                }
                 aria-describedby={
                   errors.fullName ? "fullName-error" : undefined
                 }
                 {...register("fullName")}
               />
             </div>
+            {isSellerIdentityLocked ? (
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Tên hiển thị đã đồng bộ với tên gian hàng và không thể thay đổi.
+              </p>
+            ) : null}
           </FormField>
 
           <FormField
