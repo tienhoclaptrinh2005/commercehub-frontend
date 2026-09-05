@@ -1,87 +1,109 @@
 import type {
+  ApiResponse,
   CreateDisputeRequest,
   Dispute,
+  PageResponse,
   SellerDisputeResponseRequest,
-  SpringPage,
 } from "@/types";
 
 import { api } from "./api";
 
+function unwrap<T>(response: ApiResponse<T>, fallbackMessage: string): T {
+  if (!response.success || response.data === undefined) {
+    throw new Error(response.message || fallbackMessage);
+  }
+  return response.data;
+}
+
 export const disputeService = {
-  async listBuyer(page = 0, size = 20): Promise<SpringPage<Dispute>> {
-    return (await api.get<SpringPage<Dispute>>("/api/v1/disputes", {
+  async listBuyer(page = 0, size = 20): Promise<PageResponse<Dispute>> {
+    const response = await api.get<ApiResponse<PageResponse<Dispute>>>("/api/v1/disputes", {
       params: { page, size, sort: "createdAt,desc" },
-    })).data;
+    });
+    return unwrap(response.data, "Không thể tải danh sách khiếu nại");
   },
 
   async getBuyer(id: number): Promise<Dispute> {
-    return (await api.get<Dispute>(`/api/v1/disputes/${id}`)).data;
+    const response = await api.get<ApiResponse<Dispute>>(`/api/v1/disputes/${id}`);
+    return unwrap(response.data, "Không thể tải khiếu nại");
   },
 
   async create(orderCode: string, orderItemId: number, payload: CreateDisputeRequest) {
-    return (await api.post<Dispute>(
+    const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/orders/${encodeURIComponent(orderCode)}/items/${orderItemId}/complain`,
       payload,
-    )).data;
+    );
+    return unwrap(response.data, "Không thể tạo khiếu nại");
   },
 
   async confirmWarranty(id: number): Promise<Dispute> {
-    return (await api.post<Dispute>(`/api/v1/disputes/${id}/confirm-warranty`)).data;
+    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/disputes/${id}/confirm-warranty`);
+    return unwrap(response.data, "Không thể xác nhận bảo hành");
   },
 
   async rejectWarranty(id: number): Promise<Dispute> {
-    return (await api.post<Dispute>(`/api/v1/disputes/${id}/escalate`)).data;
+    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/disputes/${id}/escalate`);
+    return unwrap(response.data, "Không thể chuyển khiếu nại đến quản trị viên");
   },
 
   async withdraw(id: number): Promise<Dispute> {
-    return (await api.post<Dispute>(`/api/v1/disputes/${id}/withdraw`)).data;
+    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/disputes/${id}/withdraw`);
+    return unwrap(response.data, "Không thể rút khiếu nại");
   },
 
-  async listSeller(page = 0, size = 20): Promise<SpringPage<Dispute>> {
-    return (await api.get<SpringPage<Dispute>>("/api/v1/seller/disputes", {
+  async listSeller(page = 0, size = 20): Promise<PageResponse<Dispute>> {
+    const response = await api.get<ApiResponse<PageResponse<Dispute>>>("/api/v1/seller/disputes", {
       params: { page, size, sort: "createdAt,desc" },
-    })).data;
+    });
+    return unwrap(response.data, "Không thể tải danh sách khiếu nại của gian hàng");
   },
 
   async getSeller(id: number): Promise<Dispute> {
-    return (await api.get<Dispute>(`/api/v1/seller/disputes/${id}`)).data;
+    const response = await api.get<ApiResponse<Dispute>>(`/api/v1/seller/disputes/${id}`);
+    return unwrap(response.data, "Không thể tải khiếu nại của gian hàng");
   },
 
   async startWarranty(dispute: Dispute, payload: SellerDisputeResponseRequest) {
-    return (await api.post<Dispute>(
+    const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/warranty-start`,
       payload,
-    )).data;
+    );
+    return unwrap(response.data, "Không thể tiếp nhận bảo hành");
   },
 
   async completeWarranty(dispute: Dispute, payload: SellerDisputeResponseRequest) {
-    return (await api.post<Dispute>(
+    const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/warranty-complete`,
       payload,
-    )).data;
+    );
+    return unwrap(response.data, "Không thể hoàn thành bảo hành");
   },
 
   async escalateSeller(dispute: Dispute, payload: SellerDisputeResponseRequest) {
-    return (await api.post<Dispute>(
+    const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/dispute`,
       payload,
-    )).data;
+    );
+    return unwrap(response.data, "Không thể chuyển tranh chấp đến quản trị viên");
   },
 
-  async listAdmin(status: string | undefined, page = 0, size = 20) {
-    return (await api.get<SpringPage<Dispute>>("/api/v1/admin/disputes", {
+  async listAdmin(status: string | undefined, page = 0, size = 20): Promise<PageResponse<Dispute>> {
+    const response = await api.get<ApiResponse<PageResponse<Dispute>>>("/api/v1/admin/disputes", {
       params: { status: status || undefined, page, size, sort: "createdAt,desc" },
-    })).data;
+    });
+    return unwrap(response.data, "Không thể tải danh sách tranh chấp");
   },
 
   async getAdmin(id: number): Promise<Dispute> {
-    return (await api.get<Dispute>(`/api/v1/admin/disputes/${id}`)).data;
+    const response = await api.get<ApiResponse<Dispute>>(`/api/v1/admin/disputes/${id}`);
+    return unwrap(response.data, "Không thể tải tranh chấp");
   },
 
   async resolveAdmin(id: number, decision: "BUYER_WIN" | "SELLER_WIN", adminNote?: string) {
-    return (await api.post<Dispute>(`/api/v1/admin/disputes/${id}/resolve`, {
+    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/admin/disputes/${id}/resolve`, {
       decision,
       adminNote,
-    })).data;
+    });
+    return unwrap(response.data, "Không thể giải quyết tranh chấp");
   },
 };

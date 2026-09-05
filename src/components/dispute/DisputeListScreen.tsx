@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
-import type { Dispute, SpringPage } from "@/types";
+import type { Dispute, PageResponse } from "@/types";
 
 import { DisputeStatusBadge } from "./DisputeStatusBadge";
 
@@ -18,9 +18,8 @@ const CLOSED_REASON_LABELS: Record<NonNullable<Dispute["closedReason"]>, string>
   BUYER_CONFIRMATION_TIMEOUT: "Buyer quá hạn xác nhận",
 };
 
-const EMPTY: SpringPage<Dispute> = {
-  content: [], totalElements: 0, totalPages: 0, size: 20, number: 0,
-  first: true, last: true, empty: true,
+const EMPTY: PageResponse<Dispute> = {
+  data: [], totalElements: 0, totalPages: 0, pageSize: 20, currentPage: 0,
 };
 
 export function DisputeListScreen({ mode }: { mode: Mode }) {
@@ -97,13 +96,13 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-5 py-4 text-sm font-semibold text-slate-500">{result.totalElements} khiếu nại</div>
-        {loading && result.content.length === 0 ? (
+        {loading && result.data.length === 0 ? (
           <div className="flex min-h-56 items-center justify-center gap-2 text-sm text-slate-500"><LoaderCircle className="size-5 animate-spin" />Đang tải dữ liệu...</div>
-        ) : result.content.length === 0 ? (
+        ) : result.data.length === 0 ? (
           <div className="grid min-h-56 place-items-center px-6 text-center"><div><Scale className="mx-auto size-10 text-slate-300" /><p className="mt-3 font-bold text-slate-700">Chưa có khiếu nại nào</p></div></div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {result.content.map((dispute) => (
+            {result.data.map((dispute) => (
               <Link key={dispute.id} href={`${baseHref}/${dispute.id}`} className="grid gap-3 px-5 py-5 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><span className="font-black text-slate-900">Khiếu nại #{dispute.id}</span><DisputeStatusBadge status={dispute.status} /></div>
@@ -120,9 +119,9 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
 
       {result.totalPages > 1 ? (
         <div className="flex justify-end gap-2">
-          <button type="button" disabled={result.first || loading} onClick={() => { setLoading(true); setPage((value) => Math.max(0, value - 1)); }} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold disabled:opacity-40">Trang trước</button>
-          <span className="grid h-10 place-items-center px-3 text-sm text-slate-500">{result.number + 1}/{result.totalPages}</span>
-          <button type="button" disabled={result.last || loading} onClick={() => { setLoading(true); setPage((value) => value + 1); }} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold disabled:opacity-40">Trang sau</button>
+          <button type="button" disabled={result.currentPage === 0 || loading} onClick={() => { setLoading(true); setPage((value) => Math.max(0, value - 1)); }} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold disabled:opacity-40">Trang trước</button>
+          <span className="grid h-10 place-items-center px-3 text-sm text-slate-500">{result.currentPage + 1}/{result.totalPages}</span>
+          <button type="button" disabled={result.currentPage + 1 >= result.totalPages || loading} onClick={() => { setLoading(true); setPage((value) => value + 1); }} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold disabled:opacity-40">Trang sau</button>
         </div>
       ) : null}
     </div>
