@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Copy,
   CreditCard,
   History,
   LoaderCircle,
@@ -15,9 +16,16 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { useDepositHistory, useWalletSummary } from "@/hooks/api/useWallet";
@@ -25,27 +33,15 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import { walletService } from "@/services/wallet.service";
-import type { SePayCheckout } from "@/types";
+import type { DepositQrSession, DepositStatus } from "@/types";
 
 const MIN_DEPOSIT = 10_000;
 const MAX_DEPOSIT = 500_000_000;
+const POLL_INTERVAL_MS = 5_000;
+const ACTIVE_DEPOSIT_KEY = "commercehub:active-sepay-deposit";
+const CREATE_ATTEMPT_KEY = "commercehub:sepay-create-attempt";
 const QUICK_AMOUNTS = [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000];
 const MONEY_FORMATTER = new Intl.NumberFormat("vi-VN");
-const ALLOWED_SEPAY_HOSTS = new Set(["pay-sandbox.sepay.vn", "pay.sepay.vn"]);
-const ALLOWED_SEPAY_FIELDS = new Set([
-  "order_amount",
-  "merchant",
-  "currency",
-  "operation",
-  "order_description",
-  "order_invoice_number",
-  "customer_id",
-  "payment_method",
-  "success_url",
-  "error_url",
-  "cancel_url",
-  "signature",
-]);
 
 function normalizeMoneyInput(input: string) {
   const digits = input.replace(/\D/g, "");
@@ -69,37 +65,45 @@ function formatTransactionTime(value: string) {
   }).format(new Date(value));
 }
 
-function submitSePayCheckout(checkout: SePayCheckout) {
-  const url = new URL(checkout.actionUrl);
-  if (
-    url.protocol !== "https:"
-    || !ALLOWED_SEPAY_HOSTS.has(url.hostname)
-    || url.pathname !== "/v1/checkout/init"
-  ) {
-    throw new Error("Backend trả về đường dẫn thanh toán không hợp lệ.");
+function secondsUntil(value: string) {
+  return Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1_000));
+}
+
+function formatCountdown(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function statusPresentation(status: DepositStatus) {
+  switch (status) {
+    case "SUCCESS":
+      return { label: "Đã vào ví", tone: "text-emerald-700", badge: "bg-emerald-50 text-emerald-700" };
+    case "FAILED":
+      return { label: "Thất bại", tone: "text-rose-600", badge: "bg-rose-50 text-rose-700" };
+    case "EXPIRED":
+      return { label: "Đã hết hạn", tone: "text-slate-500", badge: "bg-slate-100 text-slate-600" };
+    case "REVIEW_REQUIRED":
+      return { label: "Chờ đối soát", tone: "text-violet-700", badge: "bg-violet-50 text-violet-700" };
+    default:
+      return { label: "Đang chờ thanh toán", tone: "text-amber-700", badge: "bg-amber-50 text-amber-700" };
+  }
+}
+
+function getCreateAttempt(amount: number) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CREATE_ATTEMPT_KEY) ?? "null") as {
+      amount?: number;
+      idempotencyKey?: string;
+    } | null;
+    if (saved?.amount === amount && saved.idempotencyKey) return saved.idempotencyKey;
+  } catch {
+    sessionStorage.removeItem(CREATE_ATTEMPT_KEY);
   }
 
-  const requiredFields = ["order_amount", "merchant", "currency", "operation", "order_invoice_number", "signature"];
-  if (requiredFields.some((field) => !checkout.fields[field])) {
-    throw new Error("Backend trả về phiên thanh toán SePay không đầy đủ.");
-  }
-
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = url.toString();
-  form.style.display = "none";
-
-  Object.entries(checkout.fields).forEach(([name, value]) => {
-    if (!ALLOWED_SEPAY_FIELDS.has(name) || typeof value !== "string") return;
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
+  const idempotencyKey = crypto.randomUUID();
+  sessionStorage.setItem(CREATE_ATTEMPT_KEY, JSON.stringify({ amount, idempotencyKey }));
+  return idempotencyKey;
 }
 
 export function DepositScreen() {
@@ -112,37 +116,104 @@ export function DepositScreen() {
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const paymentResultHandled = useRef(false);
+  const [deposit, setDeposit] = useState<DepositQrSession | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const restoredForUser = useRef<number | null>(null);
+  const handledStatus = useRef<string | null>(null);
 
   useEffect(() => {
     if (isHydrated && !user) router.replace("/login");
   }, [isHydrated, router, user]);
 
   useEffect(() => {
-    if (paymentResultHandled.current) return;
-    const paymentResult = new URLSearchParams(window.location.search).get("payment");
-    if (!paymentResult) return;
+    if (!user || restoredForUser.current === user.id) return;
+    restoredForUser.current = user.id;
+    const transactionCode = sessionStorage.getItem(ACTIVE_DEPOSIT_KEY);
+    if (!transactionCode) return;
 
-    paymentResultHandled.current = true;
-    window.history.replaceState({}, "", "/wallet/deposit");
-    void refreshWallet();
-    void refresh();
+    let cancelled = false;
+    walletService.getDepositStatus(transactionCode)
+      .then((nextDeposit) => {
+        if (!cancelled) setDeposit(nextDeposit);
+      })
+      .catch(() => {
+        sessionStorage.removeItem(ACTIVE_DEPOSIT_KEY);
+      });
 
-    if (paymentResult === "success") {
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!deposit) return;
+    const updateCountdown = () => setRemainingSeconds(secondsUntil(deposit.expiresAt));
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1_000);
+    return () => window.clearInterval(timer);
+  }, [deposit]);
+
+  useEffect(() => {
+    if (!deposit || deposit.status !== "PENDING") return;
+    let cancelled = false;
+    let inFlight = false;
+
+    const poll = async () => {
+      if (cancelled || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        const nextDeposit = await walletService.getDepositStatus(deposit.transactionCode);
+        if (!cancelled) setDeposit(nextDeposit);
+      } catch {
+        // Lỗi mạng tạm thời không được biến thành trạng thái thanh toán thất bại.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = window.setInterval(() => void poll(), POLL_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [deposit]);
+
+  useEffect(() => {
+    if (!deposit || deposit.status === "PENDING") return;
+    const statusKey = `${deposit.transactionCode}:${deposit.status}`;
+    if (handledStatus.current === statusKey) return;
+    handledStatus.current = statusKey;
+    sessionStorage.removeItem(ACTIVE_DEPOSIT_KEY);
+
+    if (deposit.status === "SUCCESS") {
+      void refreshWallet();
+      void refresh();
+      window.dispatchEvent(new Event("commercehub:wallet-updated"));
       modal.showSuccess({
-        title: "SePay đã tiếp nhận thanh toán",
-        description: "Số dư chỉ được cập nhật sau khi CommerceHub nhận và xác minh IPN hợp lệ từ SePay.",
+        title: "Nạp tiền thành công",
+        description: `${formatCurrency(Number(deposit.amount))} đã được cộng vào số dư khả dụng của bạn.`,
+        confirmLabel: "Hoàn tất",
+      });
+    } else if (deposit.status === "REVIEW_REQUIRED") {
+      modal.showInfo({
+        title: "Giao dịch cần đối soát",
+        description: "Hệ thống đã nhận giao dịch nhưng số tiền hoặc thời điểm thanh toán không khớp. Tiền chưa được cộng tự động; vui lòng liên hệ hỗ trợ.",
         confirmLabel: "Đã hiểu",
       });
-      return;
+    } else if (deposit.status === "EXPIRED") {
+      modal.showInfo({
+        title: "Mã QR đã hết hạn",
+        description: "Mã QR chỉ có hiệu lực 15 phút. Hãy tạo mã mới và không chuyển khoản bằng mã đã hết hạn.",
+        confirmLabel: "Tạo mã mới",
+      });
     }
-
-    modal.showError({
-      title: paymentResult === "cancel" ? "Bạn đã hủy thanh toán" : "Thanh toán chưa thành công",
-      description: "Giao dịch chưa được cộng vào ví. Bạn có thể tạo một giao dịch nạp tiền mới.",
-      confirmLabel: "Đã hiểu",
-    });
-  }, [modal, refresh, refreshWallet]);
+  }, [deposit, modal, refresh, refreshWallet]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -158,13 +229,13 @@ export function DepositScreen() {
     setAmountError(null);
 
     const confirmed = await modal.confirm({
-      title: "Xác nhận nạp tiền",
-      description: "Bạn sẽ được chuyển sang cổng SePay để hoàn tất thanh toán.",
+      title: "Xác nhận tạo mã QR",
+      description: "Mã QR sẽ có hiệu lực trong 15 phút và chỉ dùng cho đúng số tiền này.",
       details: (
         <dl className="space-y-2">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Phương thức</dt>
-            <dd className="font-bold">SePay</dd>
+            <dd className="font-bold">SePay Webhook</dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
             <dt className="font-bold text-slate-700">Số tiền nạp</dt>
@@ -172,21 +243,42 @@ export function DepositScreen() {
           </div>
         </dl>
       ),
-      confirmLabel: "Tiếp tục với SePay",
+      confirmLabel: "Tạo mã QR",
     });
     if (!confirmed) return;
 
     setSubmitting(true);
     try {
-      const checkout = await walletService.createDepositCheckout({ amount: numericAmount });
-      submitSePayCheckout(checkout);
+      const nextDeposit = await walletService.createDeposit({
+        amount: numericAmount,
+        idempotencyKey: getCreateAttempt(numericAmount),
+      });
+      sessionStorage.removeItem(CREATE_ATTEMPT_KEY);
+      sessionStorage.setItem(ACTIVE_DEPOSIT_KEY, nextDeposit.transactionCode);
+      handledStatus.current = null;
+      setDeposit(nextDeposit);
     } catch (requestError) {
       modal.showError({
-        title: "Không thể tạo giao dịch nạp tiền",
-        description: getApiErrorMessage(requestError, "Không thể kết nối cổng thanh toán SePay"),
+        title: "Không thể tạo mã QR",
+        description: getApiErrorMessage(requestError, "Không thể tạo yêu cầu nạp tiền SePay"),
         confirmLabel: "Đã hiểu",
       });
+    } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function copyPaymentCode() {
+    if (!deposit) return;
+    try {
+      await navigator.clipboard.writeText(deposit.paymentCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1_500);
+    } catch {
+      modal.showError({
+        title: "Không thể sao chép",
+        description: `Vui lòng nhập thủ công nội dung ${deposit.paymentCode}.`,
+      });
     }
   }
 
@@ -201,6 +293,9 @@ export function DepositScreen() {
     );
   }
 
+  const activeQr = deposit?.status === "PENDING";
+  const currentStatus = deposit ? statusPresentation(deposit.status) : null;
+
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10">
       <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
@@ -212,7 +307,7 @@ export function DepositScreen() {
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">Nạp tiền vào ví</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Nạp tiền an toàn qua SePay để thanh toán sản phẩm trên CommerceHub.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Tạo VietQR, chuyển khoản và nhận kết quả tự động từ SePay Webhook.</p>
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-3 text-right">
           <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Số dư khả dụng</p>
@@ -222,7 +317,7 @@ export function DepositScreen() {
         </div>
       </div>
 
-      <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7" noValidate>
           <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
             <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><WalletCards className="size-5" /></span>
@@ -232,17 +327,13 @@ export function DepositScreen() {
             </div>
           </div>
 
-          <fieldset className="mt-6">
-            <legend className="text-sm font-bold text-slate-800">Chọn phương thức thanh toán</legend>
-            <div className="mt-3 grid gap-3">
-              <label className="relative flex cursor-pointer items-start gap-3 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4">
-                <input type="radio" name="deposit-provider" value="SEPAY" defaultChecked className="sr-only" />
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><QrCode className="size-5" /></span>
-                <span><strong className="block text-sm text-slate-950">SePay</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Quét mã QR chuyển khoản qua Cổng thanh toán SePay</span></span>
-                <CheckCircle2 className="absolute right-3 top-3 size-5 text-emerald-600" />
-              </label>
+          <div className="mt-6 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><QrCode className="size-5" /></span>
+              <span><strong className="block text-sm text-slate-950">VietQR + SePay Webhook</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Quét QR bằng ứng dụng ngân hàng, không chuyển sang cổng trung gian.</span></span>
+              <CheckCircle2 className="ml-auto size-5 text-emerald-600" />
             </div>
-          </fieldset>
+          </div>
 
           <div className="mt-7">
             <label htmlFor="deposit-amount" className="text-sm font-bold text-slate-800">Số tiền muốn nạp</label>
@@ -262,7 +353,7 @@ export function DepositScreen() {
               />
               <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">đ</span>
             </div>
-            {amountError ? <p id="deposit-amount-error" className="mt-2 text-xs font-semibold text-rose-600" role="alert">{amountError}</p> : <p id="deposit-amount-help" className="mt-2 text-xs text-slate-500">Chỉ nhập số nguyên dương, không bao gồm phí thanh toán của ngân hàng nếu có.</p>}
+            {amountError ? <p id="deposit-amount-error" className="mt-2 text-xs font-semibold text-rose-600" role="alert">{amountError}</p> : <p id="deposit-amount-help" className="mt-2 text-xs text-slate-500">Mỗi tài khoản chỉ có một mã QR đang chờ và mã tự hết hạn sau 15 phút.</p>}
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {QUICK_AMOUNTS.map((value) => (
@@ -275,46 +366,79 @@ export function DepositScreen() {
 
           {walletError ? <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Không tải được số dư hiện tại: {walletError}</p> : null}
 
-          <button type="submit" disabled={submitting} className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase tracking-[0.04em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-            {submitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <ShieldCheck className="mr-2 size-4" />}
-            {submitting ? "Đang tạo giao dịch..." : "Nạp tiền qua SePay"}
+          <button type="submit" disabled={submitting || activeQr} className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase tracking-[0.04em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+            {submitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <QrCode className="mr-2 size-4" />}
+            {submitting ? "Đang tạo mã..." : activeQr ? "Đang chờ thanh toán" : "Tạo mã QR"}
           </button>
         </form>
 
         <aside className="space-y-4">
-          <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-slate-600">
-            <h2 className="flex items-center gap-2 font-black text-slate-900"><ShieldCheck className="size-5 text-sky-600" />Quy trình an toàn</h2>
-            <ol className="mt-4 space-y-3 text-xs leading-5">
-              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">1</span>Xác nhận số tiền trên CommerceHub.</li>
-              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">2</span>Quét QR và hoàn tất thanh toán trên cổng SePay.</li>
-              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">3</span>SePay gửi IPN hợp lệ, hệ thống mới cộng tiền vào ví.</li>
-            </ol>
-          </section>
+          {deposit ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+              <div className="flex items-center justify-between gap-3 text-left">
+                <div>
+                  <h2 className="font-black text-slate-950">Mã QR chuyển khoản</h2>
+                  <p className="mt-1 text-xs text-slate-500">Mã nạp {deposit.transactionCode}</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-[11px] font-black ${currentStatus?.badge}`}>{currentStatus?.label}</span>
+              </div>
+
+              {activeQr ? (
+                <>
+                  <div className="mx-auto mt-5 w-fit rounded-2xl border border-slate-200 bg-white p-2">
+                    <Image src={deposit.qrUrl} alt={`Mã QR nạp tiền ${deposit.paymentCode}`} width={260} height={260} priority />
+                  </div>
+                  <p className="mt-3 flex items-center justify-center gap-2 text-sm font-bold text-amber-700">
+                    <Clock3 className="size-4" /> Còn {formatCountdown(remainingSeconds)}
+                  </p>
+                </>
+              ) : (
+                <div className={`mt-5 rounded-xl px-4 py-6 text-sm font-bold ${currentStatus?.badge}`}>
+                  {currentStatus?.label}
+                </div>
+              )}
+
+              <dl className="mt-5 space-y-3 border-t border-slate-100 pt-4 text-left text-xs">
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Ngân hàng</dt><dd className="font-bold text-slate-900">{deposit.bankCode}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Số tài khoản</dt><dd className="font-bold text-slate-900">{deposit.bankAccountNumber}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Chủ tài khoản</dt><dd className="text-right font-bold text-slate-900">{deposit.accountName}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Số tiền</dt><dd className="font-black text-emerald-700">{formatCurrency(Number(deposit.amount))}</dd></div>
+                <div className="flex items-center justify-between gap-4"><dt className="text-slate-500">Nội dung</dt><dd className="flex items-center gap-2 font-black text-slate-950">{deposit.paymentCode}<button type="button" onClick={() => void copyPaymentCode()} className="rounded-md p-1 text-emerald-700 hover:bg-emerald-50" aria-label="Sao chép nội dung chuyển khoản"><Copy className="size-3.5" /></button></dd></div>
+              </dl>
+              {copied ? <p className="mt-3 text-xs font-bold text-emerald-700">Đã sao chép nội dung chuyển khoản.</p> : null}
+              <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold leading-5 text-rose-700">Phải chuyển đúng số tiền và nội dung. Không dùng mã sau khi hết hạn.</p>
+            </section>
+          ) : (
+            <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-slate-600">
+              <h2 className="flex items-center gap-2 font-black text-slate-900"><ShieldCheck className="size-5 text-sky-600" />Quy trình an toàn</h2>
+              <ol className="mt-4 space-y-3 text-xs leading-5">
+                <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">1</span>Tạo mã QR cho đúng số tiền cần nạp.</li>
+                <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">2</span>Quét QR và giữ nguyên nội dung chuyển khoản.</li>
+                <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">3</span>SePay xác thực giao dịch, hệ thống tự cộng ví đúng một lần.</li>
+              </ol>
+            </section>
+          )}
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs leading-5 text-amber-900">
             <h2 className="flex items-center gap-2 font-black"><Clock3 className="size-4" />Lưu ý xác nhận thanh toán</h2>
-            <p className="mt-2">Tiền chỉ được cộng sau khi backend xác minh IPN từ SePay, không dựa vào trang chuyển hướng thành công.</p>
+            <p className="mt-2">Giao diện không tự cộng tiền. Số dư chỉ thay đổi sau khi backend xác minh webhook HMAC hợp lệ từ SePay.</p>
           </section>
         </aside>
       </div>
 
       <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
-          <div><h2 className="flex items-center gap-2 font-black text-slate-950"><History className="size-5 text-emerald-600" />Lịch sử nạp tiền</h2><p className="mt-1 text-xs text-slate-500">{result.totalElements} giao dịch · đang chờ, thành công hoặc thất bại từ dữ liệu thật.</p></div>
+          <div><h2 className="flex items-center gap-2 font-black text-slate-950"><History className="size-5 text-emerald-600" />Lịch sử nạp tiền</h2><p className="mt-1 text-xs text-slate-500">Dữ liệu nạp tiền thật của tài khoản đang đăng nhập.</p></div>
           <button type="button" onClick={() => void refresh()} disabled={historyLoading} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`size-3.5 ${historyLoading ? "animate-spin" : ""}`} />Làm mới</button>
         </header>
         {historyError ? <div className="p-6 text-sm text-rose-600">{historyError}</div> : historyLoading ? <div className="grid min-h-40 place-items-center text-sm text-slate-500"><LoaderCircle className="mr-2 inline size-4 animate-spin" />Đang tải lịch sử...</div> : result.data.length === 0 ? <div className="grid min-h-44 place-items-center px-5 text-center"><div><WalletCards className="mx-auto size-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-600">Bạn chưa tạo giao dịch nạp tiền nào.</p></div></div> : (
           <div className="divide-y divide-slate-100">
-            {result.data.map((deposit) => {
-              const status = deposit.status === "SUCCESS"
-                ? { label: "Đã vào ví", tone: "text-emerald-700" }
-                : deposit.status === "FAILED"
-                  ? { label: "Thất bại", tone: "text-rose-600" }
-                  : { label: "Đang chờ thanh toán", tone: "text-amber-700" };
+            {result.data.map((item) => {
+              const status = statusPresentation(item.status);
               return (
-              <article key={deposit.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
-                <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><CreditCard className="size-4" /></span><div className="min-w-0"><p className="font-bold text-slate-900">Nạp tiền qua {deposit.provider}</p><p className="mt-1 truncate text-xs text-slate-500">{formatTransactionTime(deposit.createdAt)} · {deposit.transactionCode}</p></div></div>
-                <div className="text-right"><p className={`font-black ${deposit.status === "SUCCESS" ? "text-emerald-700" : "text-slate-800"}`}>{deposit.status === "SUCCESS" ? "+" : ""}{formatCurrency(Math.abs(Number(deposit.amount)))}</p><p className={`mt-1 text-[11px] font-bold ${status.tone}`}>{status.label}</p></div>
-              </article>
+                <article key={item.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                  <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><CreditCard className="size-4" /></span><div className="min-w-0"><p className="font-bold text-slate-900">Nạp tiền qua {item.provider}</p><p className="mt-1 truncate text-xs text-slate-500">{formatTransactionTime(item.createdAt)} · {item.transactionCode}</p></div></div>
+                  <div className="text-right"><p className={`font-black ${item.status === "SUCCESS" ? "text-emerald-700" : "text-slate-800"}`}>{item.status === "SUCCESS" ? "+" : ""}{formatCurrency(Math.abs(Number(item.amount)))}</p><p className={`mt-1 text-[11px] font-bold ${status.tone}`}>{status.label}</p></div>
+                </article>
               );
             })}
           </div>

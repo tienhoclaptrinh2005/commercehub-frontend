@@ -1,9 +1,9 @@
 import type {
   ApiResponse,
   DepositHistoryItem,
+  DepositQrSession,
   DepositRequest,
   PageResponse,
-  SePayCheckout,
   SliceResponse,
   WalletSummary,
   WalletTransaction,
@@ -105,18 +105,25 @@ export const walletService = {
 
   async getDepositHistory(page = 1, size = 10): Promise<PageResponse<DepositHistoryItem>> {
     const response = await api.get<ApiResponse<PageResponse<DepositHistoryItem>>>(
-      "/api/v1/wallet/deposit",
+      "/api/v1/wallet/deposits",
       { params: { page, size } },
     );
     return unwrapData(response.data, "Không nhận được lịch sử nạp tiền");
   },
 
-  async createDepositCheckout(payload: DepositRequest): Promise<SePayCheckout> {
-    const response = await api.post<ApiResponse<SePayCheckout>>(
-      "/api/v1/wallet/deposit",
+  async createDeposit(payload: DepositRequest): Promise<DepositQrSession> {
+    const response = await api.post<ApiResponse<DepositQrSession>>(
+      "/api/v1/wallet/deposits",
       payload,
     );
-    return unwrapData(response.data, "Không nhận được phiên thanh toán SePay");
+    return unwrapData(response.data, "Không nhận được mã QR nạp tiền");
+  },
+
+  async getDepositStatus(transactionCode: string): Promise<DepositQrSession> {
+    const response = await api.get<ApiResponse<DepositQrSession>>(
+      `/api/v1/wallet/deposits/${encodeURIComponent(transactionCode)}`,
+    );
+    return unwrapData(response.data, "Không nhận được trạng thái nạp tiền");
   },
 
   async requestWithdrawal(payload: WithdrawalRequest): Promise<string> {

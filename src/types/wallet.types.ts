@@ -33,7 +33,9 @@ export interface DepositHistoryItem {
   amount: number;
   provider: string;
   transactionCode: string;
-  status: "PENDING" | "SUCCESS" | "FAILED";
+  status: DepositStatus;
+  expiresAt: string;
+  paidAt: string | null;
   processedAt: string | null;
   createdAt: string;
 }
@@ -48,10 +50,26 @@ export interface WithdrawalRequest {
 
 export interface DepositRequest {
   amount: number;
+  idempotencyKey: string;
 }
 
-export interface SePayCheckout {
-  actionUrl: string;
-  environment: string;
-  fields: Record<string, string>;
+export type DepositStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "FAILED"
+  | "EXPIRED"
+  | "REVIEW_REQUIRED";
+
+export interface DepositQrSession {
+  id: number;
+  transactionCode: string;
+  paymentCode: string;
+  amount: number;
+  status: DepositStatus;
+  qrUrl: string;
+  bankCode: string;
+  bankAccountNumber: string;
+  accountName: string;
+  expiresAt: string;
+  paidAt: string | null;
 }
