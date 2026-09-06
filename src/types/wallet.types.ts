@@ -49,3 +49,9 @@ export interface WithdrawalRequest {
 export interface DepositRequest {
   amount: number;
 }
+
+export interface SePayCheckout {
+  actionUrl: string;
+  environment: string;
+  fields: Record<string, string>;
+}

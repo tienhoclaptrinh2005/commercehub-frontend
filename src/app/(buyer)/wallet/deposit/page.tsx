@@ -4,7 +4,7 @@ import { DepositScreen } from "@/components/wallet/DepositScreen";
 
 export const metadata: Metadata = {
   title: "Nạp tiền",
-  description: "Nạp tiền vào ví CommerceHub qua VNPay.",
+  description: "Nạp tiền vào ví CommerceHub qua SePay.",
 };
 
 export default function DepositPage() {

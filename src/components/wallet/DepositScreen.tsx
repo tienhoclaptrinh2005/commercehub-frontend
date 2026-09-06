@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { useDepositHistory, useWalletSummary } from "@/hooks/api/useWallet";
@@ -25,12 +25,27 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import { walletService } from "@/services/wallet.service";
+import type { SePayCheckout } from "@/types";
 
 const MIN_DEPOSIT = 10_000;
 const MAX_DEPOSIT = 500_000_000;
 const QUICK_AMOUNTS = [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000];
 const MONEY_FORMATTER = new Intl.NumberFormat("vi-VN");
-const ALLOWED_VNPAY_HOSTS = new Set(["sandbox.vnpayment.vn", "vnpayment.vn", "www.vnpayment.vn"]);
+const ALLOWED_SEPAY_HOSTS = new Set(["pay-sandbox.sepay.vn", "pay.sepay.vn"]);
+const ALLOWED_SEPAY_FIELDS = new Set([
+  "order_amount",
+  "merchant",
+  "currency",
+  "operation",
+  "order_description",
+  "order_invoice_number",
+  "customer_id",
+  "payment_method",
+  "success_url",
+  "error_url",
+  "cancel_url",
+  "signature",
+]);
 
 function normalizeMoneyInput(input: string) {
   const digits = input.replace(/\D/g, "");
@@ -54,28 +69,80 @@ function formatTransactionTime(value: string) {
   }).format(new Date(value));
 }
 
-function ensureTrustedVnpayUrl(value: string) {
-  const url = new URL(value);
-  if (url.protocol !== "https:" || !ALLOWED_VNPAY_HOSTS.has(url.hostname)) {
+function submitSePayCheckout(checkout: SePayCheckout) {
+  const url = new URL(checkout.actionUrl);
+  if (
+    url.protocol !== "https:"
+    || !ALLOWED_SEPAY_HOSTS.has(url.hostname)
+    || url.pathname !== "/v1/checkout/init"
+  ) {
     throw new Error("Backend trả về đường dẫn thanh toán không hợp lệ.");
   }
-  return url.toString();
+
+  const requiredFields = ["order_amount", "merchant", "currency", "operation", "order_invoice_number", "signature"];
+  if (requiredFields.some((field) => !checkout.fields[field])) {
+    throw new Error("Backend trả về phiên thanh toán SePay không đầy đủ.");
+  }
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url.toString();
+  form.style.display = "none";
+
+  Object.entries(checkout.fields).forEach(([name, value]) => {
+    if (!ALLOWED_SEPAY_FIELDS.has(name) || typeof value !== "string") return;
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 export function DepositScreen() {
   const router = useRouter();
   const modal = useAppModal();
   const { user, isHydrated } = useAuth();
-  const { wallet, isLoading: walletLoading, error: walletError } = useWalletSummary();
+  const { wallet, isLoading: walletLoading, error: walletError, refresh: refreshWallet } = useWalletSummary();
   const [depositPage, setDepositPage] = useState(1);
   const { result, isLoading: historyLoading, error: historyError, refresh } = useDepositHistory(depositPage, 10);
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const paymentResultHandled = useRef(false);
 
   useEffect(() => {
     if (isHydrated && !user) router.replace("/login");
   }, [isHydrated, router, user]);
+
+  useEffect(() => {
+    if (paymentResultHandled.current) return;
+    const paymentResult = new URLSearchParams(window.location.search).get("payment");
+    if (!paymentResult) return;
+
+    paymentResultHandled.current = true;
+    window.history.replaceState({}, "", "/wallet/deposit");
+    void refreshWallet();
+    void refresh();
+
+    if (paymentResult === "success") {
+      modal.showSuccess({
+        title: "SePay đã tiếp nhận thanh toán",
+        description: "Số dư chỉ được cập nhật sau khi CommerceHub nhận và xác minh IPN hợp lệ từ SePay.",
+        confirmLabel: "Đã hiểu",
+      });
+      return;
+    }
+
+    modal.showError({
+      title: paymentResult === "cancel" ? "Bạn đã hủy thanh toán" : "Thanh toán chưa thành công",
+      description: "Giao dịch chưa được cộng vào ví. Bạn có thể tạo một giao dịch nạp tiền mới.",
+      confirmLabel: "Đã hiểu",
+    });
+  }, [modal, refresh, refreshWallet]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,12 +159,12 @@ export function DepositScreen() {
 
     const confirmed = await modal.confirm({
       title: "Xác nhận nạp tiền",
-      description: "Bạn sẽ được chuyển sang cổng VNPay để hoàn tất thanh toán.",
+      description: "Bạn sẽ được chuyển sang cổng SePay để hoàn tất thanh toán.",
       details: (
         <dl className="space-y-2">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Phương thức</dt>
-            <dd className="font-bold">VNPay</dd>
+            <dd className="font-bold">SePay</dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
             <dt className="font-bold text-slate-700">Số tiền nạp</dt>
@@ -105,20 +172,18 @@ export function DepositScreen() {
           </div>
         </dl>
       ),
-      confirmLabel: "Tiếp tục với VNPay",
+      confirmLabel: "Tiếp tục với SePay",
     });
     if (!confirmed) return;
 
     setSubmitting(true);
     try {
-      const paymentUrl = ensureTrustedVnpayUrl(
-        await walletService.createDepositUrl({ amount: numericAmount }),
-      );
-      window.location.assign(paymentUrl);
+      const checkout = await walletService.createDepositCheckout({ amount: numericAmount });
+      submitSePayCheckout(checkout);
     } catch (requestError) {
       modal.showError({
         title: "Không thể tạo giao dịch nạp tiền",
-        description: getApiErrorMessage(requestError, "Không thể kết nối cổng thanh toán VNPay"),
+        description: getApiErrorMessage(requestError, "Không thể kết nối cổng thanh toán SePay"),
         confirmLabel: "Đã hiểu",
       });
       setSubmitting(false);
@@ -147,7 +212,7 @@ export function DepositScreen() {
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">Nạp tiền vào ví</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Nạp tiền an toàn qua VNPay để thanh toán sản phẩm trên CommerceHub.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Nạp tiền an toàn qua SePay để thanh toán sản phẩm trên CommerceHub.</p>
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-3 text-right">
           <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Số dư khả dụng</p>
@@ -169,18 +234,13 @@ export function DepositScreen() {
 
           <fieldset className="mt-6">
             <legend className="text-sm font-bold text-slate-800">Chọn phương thức thanh toán</legend>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-3">
               <label className="relative flex cursor-pointer items-start gap-3 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4">
-                <input type="radio" name="deposit-provider" value="VNPAY" defaultChecked className="sr-only" />
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><CreditCard className="size-5" /></span>
-                <span><strong className="block text-sm text-slate-950">VNPay</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Thanh toán qua cổng VNPay Sandbox</span></span>
+                <input type="radio" name="deposit-provider" value="SEPAY" defaultChecked className="sr-only" />
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><QrCode className="size-5" /></span>
+                <span><strong className="block text-sm text-slate-950">SePay</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Quét mã QR chuyển khoản qua Cổng thanh toán SePay</span></span>
                 <CheckCircle2 className="absolute right-3 top-3 size-5 text-emerald-600" />
               </label>
-              <div className="relative flex cursor-not-allowed items-start gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 opacity-70" aria-disabled="true">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-slate-500"><QrCode className="size-5" /></span>
-                <span><strong className="block text-sm text-slate-700">QR ngân hàng</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Sẽ tích hợp API ngân hàng sau</span></span>
-                <span className="absolute right-3 top-3 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">Sắp có</span>
-              </div>
             </div>
           </fieldset>
 
@@ -217,7 +277,7 @@ export function DepositScreen() {
 
           <button type="submit" disabled={submitting} className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase tracking-[0.04em] text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">
             {submitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <ShieldCheck className="mr-2 size-4" />}
-            {submitting ? "Đang tạo giao dịch..." : "Nạp tiền qua VNPay"}
+            {submitting ? "Đang tạo giao dịch..." : "Nạp tiền qua SePay"}
           </button>
         </form>
 
@@ -226,13 +286,13 @@ export function DepositScreen() {
             <h2 className="flex items-center gap-2 font-black text-slate-900"><ShieldCheck className="size-5 text-sky-600" />Quy trình an toàn</h2>
             <ol className="mt-4 space-y-3 text-xs leading-5">
               <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">1</span>Xác nhận số tiền trên CommerceHub.</li>
-              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">2</span>Hoàn tất thanh toán trên cổng VNPay.</li>
-              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">3</span>VNPay gửi IPN hợp lệ, hệ thống mới cộng tiền vào ví.</li>
+              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">2</span>Quét QR và hoàn tất thanh toán trên cổng SePay.</li>
+              <li className="flex gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-600 font-bold text-white">3</span>SePay gửi IPN hợp lệ, hệ thống mới cộng tiền vào ví.</li>
             </ol>
           </section>
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs leading-5 text-amber-900">
-            <h2 className="flex items-center gap-2 font-black"><Clock3 className="size-4" />Lưu ý môi trường hiện tại</h2>
-            <p className="mt-2">Cổng đang dùng VNPay Sandbox. Không đóng cửa sổ thanh toán cho đến khi giao dịch hoàn tất.</p>
+            <h2 className="flex items-center gap-2 font-black"><Clock3 className="size-4" />Lưu ý xác nhận thanh toán</h2>
+            <p className="mt-2">Tiền chỉ được cộng sau khi backend xác minh IPN từ SePay, không dựa vào trang chuyển hướng thành công.</p>
           </section>
         </aside>
       </div>

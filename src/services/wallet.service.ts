@@ -3,6 +3,7 @@ import type {
   DepositHistoryItem,
   DepositRequest,
   PageResponse,
+  SePayCheckout,
   SliceResponse,
   WalletSummary,
   WalletTransaction,
@@ -110,12 +111,12 @@ export const walletService = {
     return unwrapData(response.data, "Không nhận được lịch sử nạp tiền");
   },
 
-  async createDepositUrl(payload: DepositRequest): Promise<string> {
-    const response = await api.post<ApiResponse<string>>(
+  async createDepositCheckout(payload: DepositRequest): Promise<SePayCheckout> {
+    const response = await api.post<ApiResponse<SePayCheckout>>(
       "/api/v1/wallet/deposit",
       payload,
     );
-    return unwrapData(response.data, "Không nhận được đường dẫn thanh toán VNPay");
+    return unwrapData(response.data, "Không nhận được phiên thanh toán SePay");
   },
 
   async requestWithdrawal(payload: WithdrawalRequest): Promise<string> {
