@@ -5,6 +5,7 @@ export * from "./common.types";
 export * from "./dispute.types";
 export * from "./order.types";
 export * from "./product.types";
+export * from "./seller-dashboard.types";
 export * from "./shop.types";
 export * from "./user.types";
 export * from "./wallet.types";

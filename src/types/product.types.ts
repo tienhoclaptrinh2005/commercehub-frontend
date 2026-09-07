@@ -101,3 +101,29 @@ export interface ProductListFilters {
   shopId?: number;
   deliveryType?: ProductDeliveryType;
 }
+
+export interface SellerProductListItem {
+  id: number;
+  name: string;
+  slug: string;
+  categoryId: number;
+  categoryName: string;
+  productType: string;
+  deliveryType: ProductDeliveryType;
+  status: Exclude<ProductStatus, "DELETED">;
+  soldCount: number;
+  thumbnailUrl: string | null;
+  minPrice: number;
+  stockCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SellerProductFilters {
+  keyword?: string;
+  categoryId?: number;
+  deliveryType?: ProductDeliveryType;
+  status?: Exclude<ProductStatus, "DELETED">;
+  page: number;
+  size: number;
+}

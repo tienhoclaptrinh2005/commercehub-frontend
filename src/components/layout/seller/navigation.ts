@@ -36,7 +36,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     label: "Sản phẩm",
     href: "/seller/products",
     icon: PackageCheck,
-    available: false,
+    available: true,
   },
   {
     label: "Đơn hàng",

@@ -8,6 +8,8 @@ interface GroupedPaginationProps {
   onPageChange: (page: number) => void;
   isLoading?: boolean;
   groupSize?: number;
+  ariaLabel?: string;
+  className?: string;
 }
 
 export function GroupedPagination({
@@ -16,6 +18,8 @@ export function GroupedPagination({
   onPageChange,
   isLoading = false,
   groupSize = 3,
+  ariaLabel = "Phân trang",
+  className = "mt-9",
 }: GroupedPaginationProps) {
   if (totalPages <= 0) return null;
 
@@ -29,8 +33,8 @@ export function GroupedPagination({
 
   return (
     <nav
-      className="mt-9 flex flex-wrap items-center justify-center gap-2"
-      aria-label="Phân trang danh sách người bán"
+      className={`${className} flex flex-wrap items-center justify-center gap-2`}
+      aria-label={ariaLabel}
     >
       <button
         type="button"
