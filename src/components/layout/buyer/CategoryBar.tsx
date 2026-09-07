@@ -15,7 +15,7 @@ export function CategoryBar() {
 
   return (
     <nav className="hidden bg-emerald-800 text-white lg:block" aria-label="Danh mục chính">
-      <div className="mx-auto flex max-w-[1200px] items-center gap-9 px-6">
+      <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 xl:gap-7">
         {buyerNavigation.map((item) => {
           const isActive = isNavigationActive(pathname, item.href);
 
@@ -24,7 +24,7 @@ export function CategoryBar() {
               key={item.href}
               href={item.href}
               aria-current={isActive ? "page" : undefined}
-              className={`relative py-4 text-sm font-semibold transition hover:text-emerald-200 ${
+              className={`relative whitespace-nowrap py-4 text-[13px] font-semibold transition hover:text-emerald-200 xl:text-sm ${
                 isActive
                   ? "after:absolute after:inset-x-0 after:bottom-2.5 after:h-0.5 after:bg-white"
                   : ""

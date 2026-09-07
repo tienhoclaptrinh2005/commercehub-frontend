@@ -46,6 +46,15 @@ function unwrapProductReviews(
 }
 
 export const productService = {
+  async getBestSelling(limit = 4): Promise<ProductSummary[]> {
+    const response = await api.get<ApiResponse<ProductSummary[]>>(
+      "/api/v1/products/best-selling",
+      { params: { limit } },
+    );
+
+    return unwrapProducts(response.data);
+  },
+
   async getBySlug(slug: string): Promise<ProductDetail> {
     const response = await api.get<ApiResponse<ProductDetail>>(
       `/api/v1/products/slug/${encodeURIComponent(slug)}`,

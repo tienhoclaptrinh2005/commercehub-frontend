@@ -2,7 +2,6 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-  Bot,
   ChevronRight,
   CircleHelp,
   Globe2,
@@ -25,7 +24,6 @@ function getCategoryIcon(category: CategorySummary): LucideIcon {
   if (value.includes("tool") || value.includes("cong-cu")) return Wrench;
   if (value.includes("quang-cao") || value.includes("ads")) return Megaphone;
   if (value.includes("web") || value.includes("extension")) return Globe2;
-  if (value.includes("workflow") || value.includes("n8n")) return Bot;
   if (value.includes("tai-khoan") || value.includes("account")) return KeyRound;
   return Tag;
 }

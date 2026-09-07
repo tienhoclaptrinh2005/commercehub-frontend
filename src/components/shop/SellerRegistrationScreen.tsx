@@ -305,7 +305,14 @@ export function SellerRegistrationScreen() {
             />
             <span>
               Tôi xác nhận thông tin cung cấp là chính xác và đồng ý với quy chế
-              người bán của CommerceHub.
+              người bán trong{" "}
+              <Link
+                href="/terms#seller"
+                className="font-bold text-emerald-700 underline underline-offset-2"
+              >
+                Điều khoản sử dụng của CommerceHub
+              </Link>
+              .
             </span>
           </label>
           {errors.acceptedTerms ? (

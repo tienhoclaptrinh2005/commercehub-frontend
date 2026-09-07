@@ -13,14 +13,12 @@ const footerLinks = {
   "Danh mục": [
     ["Sản phẩm", "/products"],
     ["Dịch vụ", "/categories/dich-vu"],
-    ["Web, Tools, Extension", "/categories/web-tools-extension"],
-    ["Workflows N8N", "/categories/workflows-n8n"],
+    ["Danh sách người bán", "/shops"],
   ],
   "Liên kết nhanh": [
     ["Trang chủ", "/"],
-    ["Tin tức", "/news"],
-    ["Giỏ hàng", "/cart"],
-    ["Câu hỏi thường gặp", "/help"],
+    ["Chính sách bảo hành", "/warranty-policy"],
+    ["Điều khoản sử dụng", "/terms"],
     ["Liên hệ", "/contact"],
   ],
 } as const;
@@ -116,9 +114,12 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-6 py-5 text-xs text-emerald-100/65 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 CommerceHub. All rights reserved.</p>
-          <div className="flex gap-5">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/privacy" className="hover:text-white">
               Chính sách bảo mật
+            </Link>
+            <Link href="/warranty-policy" className="hover:text-white">
+              Chính sách bảo hành
             </Link>
             <Link href="/terms" className="hover:text-white">
               Điều khoản sử dụng

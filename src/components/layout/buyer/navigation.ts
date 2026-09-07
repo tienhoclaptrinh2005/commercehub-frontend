@@ -3,8 +3,9 @@ export const buyerNavigation = [
 
   { label: "Sản phẩm", href: "/products" },
   { label: "Dịch vụ", href: "/categories/dich-vu" },
-  { label: "Web, Tools, Extension", href: "/categories/web-tools-extension" },
-  { label: "Workflows N8N", href: "/categories/workflows-n8n" },
+  { label: "Danh sách người bán", href: "/shops" },
+  { label: "Chính sách bảo hành", href: "/warranty-policy" },
+  { label: "Điều khoản sử dụng", href: "/terms" },
   { label: "Tin tức", href: "/news" },
   { label: "Trung tâm trợ giúp", href: "/contact" },
 ] as const;

@@ -5,11 +5,11 @@ import {
   House,
   Radar,
   Search,
+  ShieldCheck,
   SignalZero,
   ShoppingBag,
   Store,
-  Wrench,
-  Zap,
+  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,16 +35,16 @@ const quickLinks = [
     icon: Store,
   },
   {
-    label: "Web & công cụ",
-    description: "Tool, extension và tiện ích",
-    href: "/categories/web-tools-extension",
-    icon: Wrench,
+    label: "Danh sách người bán",
+    description: "Gian hàng đã được duyệt",
+    href: "/shops",
+    icon: UsersRound,
   },
   {
-    label: "Workflows N8N",
-    description: "Quy trình tự động hóa",
-    href: "/categories/workflows-n8n",
-    icon: Zap,
+    label: "Chính sách bảo hành",
+    description: "Giữ tiền T+7 và hoàn tiền",
+    href: "/warranty-policy",
+    icon: ShieldCheck,
   },
 ] as const;
 

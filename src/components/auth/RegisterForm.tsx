@@ -187,7 +187,21 @@ export function RegisterForm() {
               {...register("acceptTerms")}
             />
             <span>
-              Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật của CommerceHub.
+              Tôi đồng ý với{" "}
+              <Link
+                href="/terms"
+                className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+              >
+                Điều khoản sử dụng
+              </Link>{" "}
+              và{" "}
+              <Link
+                href="/warranty-policy"
+                className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+              >
+                Chính sách bảo hành
+              </Link>{" "}
+              của CommerceHub.
             </span>
           </label>
           {errors.acceptTerms ? (

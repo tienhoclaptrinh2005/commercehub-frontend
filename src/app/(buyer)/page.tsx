@@ -9,9 +9,11 @@ import {
 import Link from "next/link";
 
 import { HomeCategorySidebar } from "@/components/category/HomeCategorySidebar";
+import { BestSellingProducts } from "@/components/product/BestSellingProducts";
 import { LatestProducts } from "@/components/product/LatestProducts";
+import { PurchaseProcess } from "@/components/product/PurchaseProcess";
 
-const partners = ["CommerceHub Verified", "Digital Partner", "Workflows N8N", "Seller Pro", "Secure Pay"];
+const partners = ["CommerceHub Verified", "Digital Partner", "Bảo vệ giao dịch T+7", "Seller Pro", "Secure Pay"];
 
 export default function BuyerHomePage() {
   return (
@@ -67,6 +69,8 @@ export default function BuyerHomePage() {
           </div>
 
           <LatestProducts />
+          <PurchaseProcess />
+          <BestSellingProducts />
         </div>
       </section>
 
