@@ -57,9 +57,12 @@ function shopInitial(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "S";
 }
 
-function formatRating(value: number): string {
+function formatRating(value: number, ratingCount: number): string {
+  if (Number(ratingCount ?? 0) <= 0) return "Mới";
   const rating = Number(value ?? 0);
-  return Number.isFinite(rating) && rating > 0 ? rating.toFixed(1) : "Mới";
+  return Number.isFinite(rating) && rating > 0
+    ? `${rating.toFixed(1)} (${formatCount(ratingCount)})`
+    : "Mới";
 }
 
 export function ShopDirectoryScreen() {
@@ -332,7 +335,12 @@ function ShopCard({ shop }: { shop: PublicShopSummary }) {
           <ShopMetric
             icon={Star}
             label="Đánh giá"
-            value={formatRating(shop.ratingAvg)}
+            value={formatRating(shop.ratingAvg, shop.ratingCount)}
+            title={
+              shop.ratingCount > 0
+                ? `${formatCount(shop.ratingCount)} lượt đánh giá hợp lệ`
+                : "Shop chưa có đánh giá"
+            }
             highlight
           />
         </div>
@@ -352,15 +360,20 @@ function ShopMetric({
   icon: Icon,
   label,
   value,
+  title,
   highlight = false,
 }: {
   icon: typeof ShoppingBag;
   label: string;
   value: string;
+  title?: string;
   highlight?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2 py-2.5 text-center">
+    <div
+      className="rounded-xl border border-slate-100 bg-slate-50 px-2 py-2.5 text-center"
+      title={title}
+    >
       <p className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
         <Icon className={`size-3 ${highlight ? "text-amber-500" : "text-slate-400"}`} />
         {label}

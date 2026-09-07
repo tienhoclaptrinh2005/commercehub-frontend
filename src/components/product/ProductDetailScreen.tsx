@@ -430,7 +430,9 @@ function ProductDetailContent({ product }: { product: ProductDetail }) {
                 <Star className="size-4 fill-current" />
                 {formatAverageRating(product.averageRating)}
                 <span className="font-medium text-slate-500">
-                  ({new Intl.NumberFormat("vi-VN").format(product.reviewCount ?? 0)} đánh giá)
+                  {(product.reviewCount ?? 0) > 0
+                    ? `(${new Intl.NumberFormat("vi-VN").format(product.reviewCount)} đánh giá)`
+                    : "(Mới · chưa có đánh giá)"}
                 </span>
               </span>
               <span className="hidden h-5 w-px bg-slate-200 sm:block" />

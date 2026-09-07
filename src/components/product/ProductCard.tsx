@@ -50,6 +50,13 @@ function formatAverageRating(value: number | null | undefined): string {
   return Math.max(0, Math.min(5, rating)).toFixed(1);
 }
 
+function formatReviewLabel(reviewCount: number | null | undefined): string {
+  const count = Math.max(0, Number(reviewCount ?? 0));
+  return count > 0
+    ? `${new Intl.NumberFormat("vi-VN").format(count)} đánh giá`
+    : "Mới · Chưa có đánh giá";
+}
+
 export function ProductCard({
   product,
   sellerHandle,
@@ -142,10 +149,15 @@ export function ProductCard({
               </p>
               <p
                 className="mt-1 inline-flex items-center justify-center gap-1 text-xs font-bold text-amber-500"
-                title={`${new Intl.NumberFormat("vi-VN").format(product.reviewCount ?? 0)} đánh giá`}
+                title={formatReviewLabel(product.reviewCount)}
               >
                 <Star className="size-3 fill-current" />
                 {formatAverageRating(product.averageRating)}
+                {(product.reviewCount ?? 0) === 0 ? (
+                  <span className="text-[9px] font-black uppercase text-emerald-600">
+                    Mới
+                  </span>
+                ) : null}
               </p>
             </div>
           </div>
@@ -219,10 +231,15 @@ export function ProductCard({
           <span className="size-1 rounded-full bg-slate-300" />
           <span
             className="inline-flex items-center gap-1 font-semibold text-amber-500"
-            title={`${new Intl.NumberFormat("vi-VN").format(product.reviewCount ?? 0)} đánh giá`}
+            title={formatReviewLabel(product.reviewCount)}
           >
             <Star className="size-3.5 fill-current" />
             {formatAverageRating(product.averageRating)}
+            {(product.reviewCount ?? 0) === 0 ? (
+              <span className="text-[9px] font-black uppercase text-emerald-600">
+                Mới
+              </span>
+            ) : null}
           </span>
         </div>
 

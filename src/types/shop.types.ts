@@ -22,6 +22,7 @@ export interface PublicShopSummary {
   totalDisputes: number;
   disputeRate: number;
   ratingAvg: number;
+  ratingCount: number;
   status: ShopStatus;
   activeProductCount: number;
   soldProductCount: number;
