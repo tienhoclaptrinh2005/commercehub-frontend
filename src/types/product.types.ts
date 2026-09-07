@@ -127,3 +127,21 @@ export interface SellerProductFilters {
   page: number;
   size: number;
 }
+
+export interface CreateSellerProductVariant {
+  name: string;
+  durationDays?: number;
+  price: number;
+  sortOrder: number;
+}
+
+export interface CreateSellerProductPayload {
+  categoryId: number;
+  name: string;
+  shortDescription: string;
+  description: string;
+  productType: "ACCOUNT" | "OTHER";
+  deliveryType: ProductDeliveryType;
+  thumbnailUrl?: string;
+  variants: CreateSellerProductVariant[];
+}

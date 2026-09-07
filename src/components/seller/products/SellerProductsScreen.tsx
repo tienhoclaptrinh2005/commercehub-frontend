@@ -5,6 +5,7 @@ import {
   Eye,
   ImageIcon,
   PackageCheck,
+  Plus,
   RefreshCw,
   Search,
   ShoppingBag,
@@ -118,15 +119,24 @@ export function SellerProductsScreen() {
           <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">Quản lý sản phẩm</h1>
           <p className="mt-1 text-sm text-slate-500">Kiểm soát kho hàng và các mặt hàng của chính gian hàng bạn.</p>
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={isLoading}
-          className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-violet-200 hover:text-violet-700 disabled:opacity-50 sm:self-auto"
-        >
-          <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
-          Làm mới
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={isLoading}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-violet-200 hover:text-violet-700 disabled:opacity-50"
+          >
+            <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+            Làm mới
+          </button>
+          <Link
+            href="/seller/products/new"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+          >
+            <Plus className="size-5" />
+            Thêm sản phẩm
+          </Link>
+        </div>
       </div>
 
       <section className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(280px,1fr)_260px_220px]">

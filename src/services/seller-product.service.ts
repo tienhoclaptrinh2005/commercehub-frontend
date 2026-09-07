@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  CreateSellerProductPayload,
   PageResponse,
   ProductSummary,
   SellerProductFilters,
@@ -44,5 +45,24 @@ export const sellerProductService = {
       { status },
     );
     return unwrapProduct(response.data);
+  },
+
+  async createProduct(payload: CreateSellerProductPayload): Promise<ProductSummary> {
+    const response = await api.post<ApiResponse<ProductSummary>>(
+      "/api/v1/seller/products",
+      payload,
+    );
+    return unwrapProduct(response.data);
+  },
+
+  async uploadInventory(variantId: number, rawAssets: string[]): Promise<number> {
+    const response = await api.post<ApiResponse<number>>(
+      "/api/v1/seller/products/assets/inventory",
+      { variantId, rawAssets },
+    );
+    if (!response.data.success || response.data.data == null) {
+      throw new Error(response.data.message || "Không thể nạp dữ liệu kho");
+    }
+    return response.data.data;
   },
 };
