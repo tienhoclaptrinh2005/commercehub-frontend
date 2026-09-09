@@ -33,6 +33,22 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.*.example
+
+# Local credentials and generated files
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.tmp
+*.bak
+*.orig
+Thumbs.db
+Desktop.ini
+/.secrets/
+/secrets/
+/credentials/
 
 # vercel
 .vercel

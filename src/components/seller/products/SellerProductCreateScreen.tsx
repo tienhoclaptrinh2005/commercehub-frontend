@@ -9,15 +9,16 @@ import {
   ImageIcon,
   Info,
   Layers3,
-  Link2,
   PackagePlus,
   Plus,
   Trash2,
+  Upload,
+  X,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { useCategories } from "@/hooks/api/useCategories";
@@ -25,6 +26,7 @@ import { getApiErrorMessage } from "@/services/api";
 import { sellerProductService } from "@/services/seller-product.service";
 import type {
   CategorySummary,
+  CompleteProductImageUpload,
   CreateSellerProductPayload,
   ProductDeliveryType,
   ProductSummary,
@@ -34,6 +36,8 @@ const MAX_VARIANTS = 5;
 const MAX_ASSETS_PER_VARIANT = 500;
 const MAX_ASSET_LENGTH = 10_000;
 const MAX_PRICE = 500_000_000;
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 type ProductType = "ACCOUNT" | "OTHER";
 
@@ -42,7 +46,6 @@ interface ProductDraft {
   categoryId: string;
   productType: ProductType;
   deliveryType: ProductDeliveryType;
-  thumbnailUrl: string;
   shortDescription: string;
   description: string;
 }
@@ -65,7 +68,6 @@ const INITIAL_PRODUCT: ProductDraft = {
   categoryId: "",
   productType: "ACCOUNT",
   deliveryType: "INSTANT",
-  thumbnailUrl: "",
   shortDescription: "",
   description: "",
 };
@@ -113,6 +115,7 @@ export function SellerProductCreateScreen() {
   const { categories, isLoading: categoriesLoading, error: categoriesError, refresh } = useCategories();
   const nextVariantKey = useRef(2);
   const completedInventoryVariantIds = useRef(new Set<number>());
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [product, setProduct] = useState<ProductDraft>(INITIAL_PRODUCT);
   const [variants, setVariants] = useState<VariantDraft[]>([
@@ -121,10 +124,16 @@ export function SellerProductCreateScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdProduct, setCreatedProduct] = useState<ProductSummary | null>(null);
   const [createdProductWasPaused, setCreatedProductWasPaused] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<CompleteProductImageUpload | null>(null);
 
   const leafCategories = useMemo(() => collectLeafCategories(categories), [categories]);
   const formLocked = isSubmitting || createdProduct != null;
+
+  useEffect(() => () => {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+  }, [imagePreviewUrl]);
 
   function patchProduct<K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) {
     setProduct((current) => ({ ...current, [key]: value }));
@@ -174,17 +183,42 @@ export function SellerProductCreateScreen() {
     if (product.shortDescription.trim().length > 200) return "Mô tả ngắn tối đa 200 ký tự.";
     if (!product.description.trim()) return "Vui lòng nhập mô tả chi tiết sản phẩm.";
     if (product.description.trim().length > 50_000) return "Mô tả chi tiết tối đa 50.000 ký tự.";
-    if (product.thumbnailUrl.trim()) {
-      try {
-        const url = new URL(product.thumbnailUrl.trim());
-        if (!(["http:", "https:"] as string[]).includes(url.protocol)) {
-          return "Ảnh đại diện phải là đường dẫn HTTP hoặc HTTPS.";
-        }
-      } catch {
-        return "Đường dẫn ảnh đại diện không hợp lệ.";
-      }
+    if (imageFile && !ALLOWED_IMAGE_TYPES.has(imageFile.type)) {
+      return "Ảnh đại diện chỉ hỗ trợ JPG, PNG hoặc WebP.";
+    }
+    if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
+      return "Ảnh đại diện không được vượt quá 2 MB.";
     }
     return null;
+  }
+
+  function handleImageSelection(file: File | undefined) {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      modal.showError({
+        title: "Định dạng ảnh không hợp lệ",
+        description: "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP.",
+      });
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      modal.showError({
+        title: "Ảnh quá lớn",
+        description: "Dung lượng ảnh tối đa là 2 MB.",
+      });
+      return;
+    }
+
+    setImageFile(file);
+    setUploadedImage(null);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
+  function removeSelectedImage() {
+    setImageFile(null);
+    setUploadedImage(null);
+    setImagePreviewUrl(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
   function validateVariants() {
@@ -280,6 +314,13 @@ export function SellerProductCreateScreen() {
     let remoteProduct = createdProduct;
     try {
       if (!remoteProduct) {
+        let thumbnailObjectKey = uploadedImage?.objectKey;
+        if (imageFile && !thumbnailObjectKey) {
+          const completedUpload = await sellerProductService.uploadProductImage(imageFile);
+          setUploadedImage(completedUpload);
+          thumbnailObjectKey = completedUpload.objectKey;
+        }
+
         const payload: CreateSellerProductPayload = {
           categoryId: Number(product.categoryId),
           name: product.name.trim(),
@@ -287,7 +328,7 @@ export function SellerProductCreateScreen() {
           description: product.description.trim(),
           productType: product.productType,
           deliveryType: product.deliveryType,
-          thumbnailUrl: product.thumbnailUrl.trim() || undefined,
+          thumbnailUrl: thumbnailObjectKey,
           variants: variants.map((variant, index) => ({
             name: variant.name.trim(),
             price: Number(variant.price),
@@ -405,19 +446,47 @@ export function SellerProductCreateScreen() {
               </div>
 
               <div>
-                <label className="block">
-                  <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700"><Link2 className="size-4 text-violet-500" /> URL ảnh đại diện</span>
-                  <input className={INPUT_CLASS} value={product.thumbnailUrl} maxLength={500} onChange={(event) => { patchProduct("thumbnailUrl", event.target.value); setImageFailed(false); }} placeholder="https://..." />
-                  <p className="mt-1.5 text-xs text-slate-400">Hiện backend nhận URL ảnh, chưa có API tải file trực tiếp.</p>
-                </label>
-                <div className="mt-3 grid aspect-[16/10] place-items-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
-                  {product.thumbnailUrl.trim() && !imageFailed ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={product.thumbnailUrl.trim()} alt="Xem trước ảnh sản phẩm" onError={() => setImageFailed(true)} className="size-full object-cover" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-700">Ảnh đại diện</span>
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="inline-flex h-9 items-center gap-2 rounded-lg bg-violet-600 px-3 text-xs font-black text-white transition hover:bg-violet-700"
+                  >
+                    <Upload className="size-4" /> {imageFile ? "Đổi ảnh" : "Chọn ảnh"}
+                  </button>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(event) => handleImageSelection(event.target.files?.[0])}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">JPG, PNG hoặc WebP; tối đa 2 MB. Ảnh được tải lên khi bạn tạo sản phẩm.</p>
+                <div className="relative mt-3 grid aspect-[16/10] place-items-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+                  {imagePreviewUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imagePreviewUrl} alt="Xem trước ảnh sản phẩm" className="size-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={removeSelectedImage}
+                        className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-slate-950/70 text-white transition hover:bg-rose-600"
+                        aria-label="Bỏ ảnh đã chọn"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </>
                   ) : (
-                    <div className="text-center"><ImageIcon className="mx-auto size-9" /><p className="mt-2 text-xs font-bold">{imageFailed ? "Không tải được ảnh" : "Chưa có ảnh"}</p></div>
+                    <div className="text-center"><ImageIcon className="mx-auto size-9" /><p className="mt-2 text-xs font-bold">Chưa có ảnh</p></div>
                   )}
                 </div>
+                {imageFile ? (
+                  <p className="mt-2 truncate text-xs font-semibold text-slate-500">
+                    {imageFile.name} · {(imageFile.size / 1024).toFixed(0)} KB
+                  </p>
+                ) : null}
               </div>
             </div>
 

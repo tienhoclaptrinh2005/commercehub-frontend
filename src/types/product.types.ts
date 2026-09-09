@@ -145,3 +145,15 @@ export interface CreateSellerProductPayload {
   thumbnailUrl?: string;
   variants: CreateSellerProductVariant[];
 }
+
+export interface PresignProductImageUpload {
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  maxFileSizeBytes: number;
+}
+
+export interface CompleteProductImageUpload {
+  objectKey: string;
+  publicUrl: string;
+}
