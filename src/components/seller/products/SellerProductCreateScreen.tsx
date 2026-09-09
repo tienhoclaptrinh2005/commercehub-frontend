@@ -22,6 +22,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { useCategories } from "@/hooks/api/useCategories";
+import {
+  normalizeProductImage,
+  PRODUCT_IMAGE_HEIGHT,
+  PRODUCT_IMAGE_MAX_BYTES,
+  PRODUCT_IMAGE_MIN_CROP_HEIGHT,
+  PRODUCT_IMAGE_MIN_CROP_WIDTH,
+  PRODUCT_IMAGE_WIDTH,
+  ProductImageValidationError,
+} from "@/lib/product-image";
 import { getApiErrorMessage } from "@/services/api";
 import { sellerProductService } from "@/services/seller-product.service";
 import type {
@@ -36,8 +45,6 @@ const MAX_VARIANTS = 5;
 const MAX_ASSETS_PER_VARIANT = 500;
 const MAX_ASSET_LENGTH = 10_000;
 const MAX_PRICE = 500_000_000;
-const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 type ProductType = "ACCOUNT" | "OTHER";
 
@@ -116,6 +123,7 @@ export function SellerProductCreateScreen() {
   const nextVariantKey = useRef(2);
   const completedInventoryVariantIds = useRef(new Set<number>());
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const imageSelectionVersion = useRef(0);
   const [step, setStep] = useState<1 | 2>(1);
   const [product, setProduct] = useState<ProductDraft>(INITIAL_PRODUCT);
   const [variants, setVariants] = useState<VariantDraft[]>([
@@ -127,9 +135,10 @@ export function SellerProductCreateScreen() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<CompleteProductImageUpload | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const leafCategories = useMemo(() => collectLeafCategories(categories), [categories]);
-  const formLocked = isSubmitting || createdProduct != null;
+  const formLocked = isSubmitting || isProcessingImage || createdProduct != null;
 
   useEffect(() => () => {
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
@@ -183,38 +192,45 @@ export function SellerProductCreateScreen() {
     if (product.shortDescription.trim().length > 200) return "Mô tả ngắn tối đa 200 ký tự.";
     if (!product.description.trim()) return "Vui lòng nhập mô tả chi tiết sản phẩm.";
     if (product.description.trim().length > 50_000) return "Mô tả chi tiết tối đa 50.000 ký tự.";
-    if (imageFile && !ALLOWED_IMAGE_TYPES.has(imageFile.type)) {
-      return "Ảnh đại diện chỉ hỗ trợ JPG, PNG hoặc WebP.";
+    if (imageFile && imageFile.type !== "image/webp") {
+      return "Ảnh đại diện chưa được chuẩn hóa thành WebP.";
     }
-    if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
+    if (imageFile && imageFile.size > PRODUCT_IMAGE_MAX_BYTES) {
       return "Ảnh đại diện không được vượt quá 2 MB.";
     }
     return null;
   }
 
-  function handleImageSelection(file: File | undefined) {
+  async function handleImageSelection(file: File | undefined) {
     if (!file) return;
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      modal.showError({
-        title: "Định dạng ảnh không hợp lệ",
-        description: "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP.",
-      });
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      modal.showError({
-        title: "Ảnh quá lớn",
-        description: "Dung lượng ảnh tối đa là 2 MB.",
-      });
-      return;
-    }
+    const selectionVersion = ++imageSelectionVersion.current;
+    setIsProcessingImage(true);
+    try {
+      const normalizedImage = await normalizeProductImage(file);
+      if (selectionVersion !== imageSelectionVersion.current) return;
 
-    setImageFile(file);
-    setUploadedImage(null);
-    setImagePreviewUrl(URL.createObjectURL(file));
+      setImageFile(normalizedImage);
+      setUploadedImage(null);
+      setImagePreviewUrl(URL.createObjectURL(normalizedImage));
+    } catch (error) {
+      if (selectionVersion !== imageSelectionVersion.current) return;
+      modal.showError({
+        title: "Không thể xử lý ảnh",
+        description: error instanceof ProductImageValidationError
+          ? error.message
+          : "Không thể chuẩn hóa ảnh. Vui lòng chọn ảnh khác.",
+      });
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    } finally {
+      if (selectionVersion === imageSelectionVersion.current) {
+        setIsProcessingImage(false);
+      }
+    }
   }
 
   function removeSelectedImage() {
+    imageSelectionVersion.current += 1;
+    setIsProcessingImage(false);
     setImageFile(null);
     setUploadedImage(null);
     setImagePreviewUrl(null);
@@ -451,20 +467,26 @@ export function SellerProductCreateScreen() {
                   <button
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
+                    disabled={isProcessingImage}
                     className="inline-flex h-9 items-center gap-2 rounded-lg bg-violet-600 px-3 text-xs font-black text-white transition hover:bg-violet-700"
                   >
-                    <Upload className="size-4" /> {imageFile ? "Đổi ảnh" : "Chọn ảnh"}
+                    <Upload className="size-4" /> {isProcessingImage ? "Đang xử lý..." : imageFile ? "Đổi ảnh" : "Chọn ảnh"}
                   </button>
                   <input
                     ref={imageInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="sr-only"
-                    onChange={(event) => handleImageSelection(event.target.files?.[0])}
+                    onClick={(event) => {
+                      event.currentTarget.value = "";
+                    }}
+                    onChange={(event) => void handleImageSelection(event.target.files?.[0])}
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-slate-400">JPG, PNG hoặc WebP; tối đa 2 MB. Ảnh được tải lên khi bạn tạo sản phẩm.</p>
-                <div className="relative mt-3 grid aspect-[16/10] place-items-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+                <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                  JPG, PNG hoặc WebP; tối đa 2 MB; vùng ảnh tối thiểu {PRODUCT_IMAGE_MIN_CROP_WIDTH}×{PRODUCT_IMAGE_MIN_CROP_HEIGHT}px. Khuyến nghị 1200×900px, không cần vượt 2400×1800px. Hệ thống tự cắt 4:3, chuyển WebP {PRODUCT_IMAGE_WIDTH}×{PRODUCT_IMAGE_HEIGHT}px và xóa metadata.
+                </p>
+                <div className="relative mt-3 grid aspect-[4/3] place-items-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
                   {imagePreviewUrl ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -484,7 +506,7 @@ export function SellerProductCreateScreen() {
                 </div>
                 {imageFile ? (
                   <p className="mt-2 truncate text-xs font-semibold text-slate-500">
-                    {imageFile.name} · {(imageFile.size / 1024).toFixed(0)} KB
+                    {imageFile.name} · {PRODUCT_IMAGE_WIDTH}×{PRODUCT_IMAGE_HEIGHT} · {(imageFile.size / 1024).toFixed(0)} KB
                   </p>
                 ) : null}
               </div>

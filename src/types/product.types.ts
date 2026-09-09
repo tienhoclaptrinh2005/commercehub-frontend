@@ -151,6 +151,7 @@ export interface PresignProductImageUpload {
   uploadUrl: string;
   expiresAt: string;
   maxFileSizeBytes: number;
+  cacheControl: string;
 }
 
 export interface CompleteProductImageUpload {

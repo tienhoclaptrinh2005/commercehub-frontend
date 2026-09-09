@@ -78,7 +78,10 @@ export const sellerProductService = {
       // must never be sent to Cloudflare's signed PUT URL.
       const uploadResponse = await fetch(presign.uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": file.type },
+        headers: {
+          "Content-Type": file.type,
+          "Cache-Control": presign.cacheControl,
+        },
         body: file,
         signal: abortController.signal,
       });
