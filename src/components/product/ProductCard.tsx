@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ImageIcon,
   PackageCheck,
@@ -5,6 +7,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { formatCurrency } from "@/lib/format";
 import type { ProductSummary } from "@/types";
@@ -13,6 +16,42 @@ interface ProductCardProps {
   product: ProductSummary;
   sellerHandle?: string;
   variant?: "profile" | "catalog";
+}
+
+interface ProductThumbnailProps {
+  src: string | null | undefined;
+  alt: string;
+  imageClassName: string;
+  fallbackClassName: string;
+  iconClassName: string;
+}
+
+function ProductThumbnail({
+  src,
+  alt,
+  imageClassName,
+  fallbackClassName,
+  iconClassName,
+}: ProductThumbnailProps) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <span className={fallbackClassName} aria-label={`${alt} chưa có ảnh khả dụng`}>
+        <ImageIcon className={iconClassName} strokeWidth={1.4} />
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={imageClassName}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function getActivePrices(product: ProductSummary): number[] {
@@ -75,18 +114,14 @@ export function ProductCard({
           href={`/products/${product.slug}`}
           className="relative block h-48 shrink-0 overflow-hidden border-b border-slate-100 bg-slate-100"
         >
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt={product.name}
-              className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <span className="grid size-full place-items-center bg-gradient-to-br from-slate-100 to-emerald-50 text-emerald-900/20">
-              <ImageIcon className="size-14" strokeWidth={1.4} />
-            </span>
-          )}
+          <ProductThumbnail
+            key={imageUrl ?? "empty"}
+            src={imageUrl}
+            alt={product.name}
+            imageClassName="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            fallbackClassName="grid size-full place-items-center bg-gradient-to-br from-slate-100 to-emerald-50 text-emerald-900/20"
+            iconClassName="size-14"
+          />
 
           <span
             className={`absolute left-2.5 top-2.5 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white shadow-sm ${
@@ -190,18 +225,14 @@ export function ProductCard({
 
   const media = (
     <>
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt={product.name}
-          className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
-        />
-      ) : (
-        <span className="grid size-full place-items-center text-emerald-900/25">
-          <ImageIcon className="size-12" strokeWidth={1.5} />
-        </span>
-      )}
+      <ProductThumbnail
+        key={imageUrl ?? "empty"}
+        src={imageUrl}
+        alt={product.name}
+        imageClassName="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+        fallbackClassName="grid size-full place-items-center text-emerald-900/25"
+        iconClassName="size-12"
+      />
 
       <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-800 shadow-sm backdrop-blur-sm">
         {product.deliveryType === "INSTANT" ? "Giao ngay" : "Đặt hàng"}
