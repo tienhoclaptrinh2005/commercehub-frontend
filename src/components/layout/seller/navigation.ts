@@ -16,7 +16,6 @@ export interface SellerNavigationItem {
   href: string;
   icon: LucideIcon;
   available: boolean;
-  section?: string;
 }
 
 export const sellerNavigation: SellerNavigationItem[] = [
@@ -33,17 +32,22 @@ export const sellerNavigation: SellerNavigationItem[] = [
     available: true,
   },
   {
-    label: "Đơn Giao ngay",
+    label: "Tất cả đơn hàng",
     href: "/seller/orders",
     icon: ShoppingBag,
-    available: false,
-    section: "Quản lý đơn hàng",
+    available: true,
   },
   {
-    label: "Đơn Đặt hàng",
-    href: "/seller/pre-orders",
+    label: "Đơn giao ngay",
+    href: "/seller/orders/instant",
+    icon: PackageCheck,
+    available: true,
+  },
+  {
+    label: "Đơn đặt hàng",
+    href: "/seller/orders/pre-orders",
     icon: Clock3,
-    available: false,
+    available: true,
   },
   {
     label: "Khiếu nại",

@@ -3,7 +3,6 @@
 import { ArrowLeft, ExternalLink, Store } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment } from "react";
 
 import { BrandLogo } from "@/components/auth/BrandLogo";
 
@@ -11,6 +10,9 @@ import { sellerNavigation, type SellerNavigationItem } from "./navigation";
 
 function isNavigationActive(pathname: string, item: SellerNavigationItem) {
   if (item.href === "/seller") return pathname === item.href;
+  if (item.href === "/seller/orders") {
+    return pathname === item.href || /^\/seller\/orders\/\d+$/.test(pathname);
+  }
   return pathname.startsWith(item.href);
 }
 
@@ -30,30 +32,21 @@ export function SellerNavigation({ compact = false }: { compact?: boolean }) {
               : "cursor-not-allowed text-slate-400"
         }`;
 
-        return (
-          <Fragment key={item.href}>
-            {item.section ? (
-              <p className="px-3 pb-1 pt-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 first:pt-0">
-                {item.section}
-              </p>
-            ) : null}
-            {!item.available ? (
-              <span className={className} title="Tính năng sẽ được xây dựng sau">
-                <Icon className="size-[18px] shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                {!compact ? (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                    Sắp có
-                  </span>
-                ) : null}
+        return !item.available ? (
+          <span key={item.href} className={className} title="Tính năng sẽ được xây dựng sau">
+            <Icon className="size-[18px] shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {!compact ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                Sắp có
               </span>
-            ) : (
-              <Link href={item.href} className={className}>
-                <Icon className="size-[18px] shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              </Link>
-            )}
-          </Fragment>
+            ) : null}
+          </span>
+        ) : (
+          <Link key={item.href} href={item.href} className={className}>
+            <Icon className="size-[18px] shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          </Link>
         );
       })}
     </nav>

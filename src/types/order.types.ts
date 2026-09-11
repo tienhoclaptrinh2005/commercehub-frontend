@@ -4,6 +4,7 @@ export interface OrderSummary {
   shopId: number;
   shopName: string;
   sellerUsername: string;
+  buyerUsername: string;
   deliveryType: string;
   status: string;
   effectiveStatus: string;
@@ -55,6 +56,9 @@ export interface OrderDetail extends OrderSummary {
   paymentMethod: string;
   subtotalAmount: number;
   voucherDiscount: number;
+  approvalDeadlineAt: string | null;
+  processingDeadlineAt: string | null;
+  rejectionReason: string | null;
   deliveredAt: string | null;
   items: OrderItemDetail[];
   statusLogs: OrderStatusLog[];
