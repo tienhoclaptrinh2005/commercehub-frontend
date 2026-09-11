@@ -1,5 +1,6 @@
 export type ProductStatus = "ACTIVE" | "INACTIVE" | "DELETED";
 export type ProductDeliveryType = "INSTANT" | "PRE_ORDER";
+export type ProductVariantStatus = "ACTIVE" | "INACTIVE";
 
 export interface ProductVariant {
   id: number;
@@ -8,7 +9,7 @@ export interface ProductVariant {
   durationDays: number | null;
   price: number;
   sortOrder: number;
-  status: ProductStatus;
+  status: ProductVariantStatus;
   stockCount: number;
 }
 
@@ -144,6 +145,42 @@ export interface CreateSellerProductPayload {
   deliveryType: ProductDeliveryType;
   thumbnailUrl?: string;
   variants: CreateSellerProductVariant[];
+}
+
+export interface UpdateSellerProductPayload {
+  categoryId: number;
+  name: string;
+  shortDescription: string;
+  description: string;
+  thumbnailUrl?: string;
+  variants: Array<UpdateSellerProductVariantPayload & { id?: number }>;
+}
+
+export interface CreateSellerProductVariantPayload extends CreateSellerProductVariant {
+  productId: number;
+}
+
+export interface UpdateSellerProductVariantPayload {
+  name: string;
+  durationDays?: number;
+  price: number;
+  sortOrder: number;
+  status: ProductVariantStatus;
+}
+
+export interface DigitalAsset {
+  id: number;
+  variantId: number;
+  deliveryContent: string | null;
+  assetData: string;
+  status: "AVAILABLE";
+  createdAt: string;
+}
+
+export interface DigitalAssetImportResult {
+  receivedCount: number;
+  addedCount: number;
+  duplicateCount: number;
 }
 
 export interface PresignProductImageUpload {

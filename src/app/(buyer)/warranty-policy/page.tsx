@@ -94,8 +94,8 @@ export default function WarrantyPolicyPage() {
         <h2 className={headingClassName}>I. Phạm vi áp dụng</h2>
         <p className="mt-4">
           Chính sách áp dụng cho từng mục hàng được mua và thanh toán thành công
-          trên CommerceHub, gồm sản phẩm giao ngay (INSTANT) và sản phẩm đặt hàng
-          (PRE_ORDER). Thời hạn cụ thể được xác định bằng trạng thái và mốc thời
+          trên CommerceHub, gồm hai hình thức Giao ngay và Đặt hàng. Thời hạn cụ
+          thể được xác định bằng trạng thái và mốc thời
           gian lưu trong hệ thống, không tính theo nội dung trao đổi bên ngoài.
         </p>
         <p className="mt-3">

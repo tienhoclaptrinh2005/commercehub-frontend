@@ -39,6 +39,7 @@ import type {
   CreateSellerProductPayload,
   ProductDeliveryType,
   ProductSummary,
+  ProductVariantStatus,
 } from "@/types";
 
 const MAX_VARIANTS = 5;
@@ -59,10 +60,17 @@ interface ProductDraft {
 
 interface VariantDraft {
   key: number;
+  id?: number;
   name: string;
   price: string;
   durationDays: string;
   inventoryText: string;
+  status: ProductVariantStatus;
+  stockCount: number;
+}
+
+interface SellerProductCreateScreenProps {
+  productId?: number;
 }
 
 interface LeafCategory {
@@ -116,9 +124,10 @@ function Counter({ current, max }: { current: number; max: number }) {
   );
 }
 
-export function SellerProductCreateScreen() {
+export function SellerProductCreateScreen({ productId: editingProductId }: SellerProductCreateScreenProps = {}) {
   const router = useRouter();
   const modal = useAppModal();
+  const isEditing = editingProductId != null;
   const { categories, isLoading: categoriesLoading, error: categoriesError, refresh } = useCategories();
   const nextVariantKey = useRef(2);
   const completedInventoryVariantIds = useRef(new Set<number>());
@@ -127,8 +136,10 @@ export function SellerProductCreateScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [product, setProduct] = useState<ProductDraft>(INITIAL_PRODUCT);
   const [variants, setVariants] = useState<VariantDraft[]>([
-    { key: 1, name: "Mặc định", price: "", durationDays: "", inventoryText: "" },
+    { key: 1, name: "Mặc định", price: "", durationDays: "", inventoryText: "", status: "ACTIVE", stockCount: 0 },
   ]);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(isEditing);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdProduct, setCreatedProduct] = useState<ProductSummary | null>(null);
   const [createdProductWasPaused, setCreatedProductWasPaused] = useState(false);
@@ -138,7 +149,50 @@ export function SellerProductCreateScreen() {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const leafCategories = useMemo(() => collectLeafCategories(categories), [categories]);
-  const formLocked = isSubmitting || isProcessingImage || createdProduct != null;
+  const formLocked = isSubmitting
+    || isProcessingImage
+    || isLoadingExisting
+    || (!isEditing && createdProduct != null);
+
+  useEffect(() => {
+    if (editingProductId == null) return;
+    let cancelled = false;
+    sellerProductService.getProduct(editingProductId)
+      .then((remoteProduct) => {
+        if (cancelled) return;
+        setProduct({
+          name: remoteProduct.name,
+          categoryId: String(remoteProduct.categoryId),
+          productType: remoteProduct.productType === "OTHER" ? "OTHER" : "ACCOUNT",
+          deliveryType: remoteProduct.deliveryType,
+          shortDescription: remoteProduct.shortDescription ?? "",
+          description: remoteProduct.description ?? "",
+        });
+        setVariants(remoteProduct.variants.map((variant, index) => ({
+          key: index + 1,
+          id: variant.id,
+          name: variant.name,
+          price: String(variant.price),
+          durationDays: variant.durationDays == null ? "" : String(variant.durationDays),
+          inventoryText: "",
+          status: variant.status,
+          stockCount: variant.stockCount,
+        })));
+        nextVariantKey.current = remoteProduct.variants.length + 1;
+        setImagePreviewUrl(remoteProduct.thumbnailUrl);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(getApiErrorMessage(error, "Không thể tải sản phẩm cần chỉnh sửa"));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingExisting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editingProductId]);
 
   useEffect(() => () => {
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
@@ -169,7 +223,7 @@ export function SellerProductCreateScreen() {
     const key = nextVariantKey.current++;
     setVariants((current) => [
       ...current,
-      { key, name: `Biến thể ${current.length + 1}`, price: "", durationDays: "", inventoryText: "" },
+      { key, name: `Biến thể ${current.length + 1}`, price: "", durationDays: "", inventoryText: "", status: "ACTIVE", stockCount: 0 },
     ]);
   }
 
@@ -322,11 +376,55 @@ export function SellerProductCreateScreen() {
     const variantError = validateVariants();
     const message = basicError ?? variantError;
     if (message) {
-      modal.showError({ title: "Chưa thể tạo sản phẩm", description: message });
+      modal.showError({
+        title: isEditing ? "Chưa thể cập nhật sản phẩm" : "Chưa thể tạo sản phẩm",
+        description: message,
+      });
       return;
     }
 
     setIsSubmitting(true);
+    if (isEditing && editingProductId != null) {
+      try {
+        let thumbnailObjectKey: string | undefined;
+        if (imageFile) {
+          const completedUpload = uploadedImage
+            ?? await sellerProductService.uploadProductImage(imageFile);
+          setUploadedImage(completedUpload);
+          thumbnailObjectKey = completedUpload.objectKey;
+        }
+        await sellerProductService.updateProduct(editingProductId, {
+          categoryId: Number(product.categoryId),
+          name: product.name.trim(),
+          shortDescription: product.shortDescription.trim(),
+          description: product.description.trim(),
+          thumbnailUrl: thumbnailObjectKey,
+          variants: variants.map((variant, index) => ({
+            id: variant.id,
+            name: variant.name.trim(),
+            price: Number(variant.price),
+            durationDays: variant.durationDays ? Number(variant.durationDays) : undefined,
+            sortOrder: index,
+            status: variant.status,
+          })),
+        });
+        modal.showSuccess({
+          title: "Cập nhật sản phẩm thành công",
+          description: "Thông tin và biến thể đã được lưu; lịch sử đơn cũ vẫn được giữ nguyên.",
+        });
+        router.push("/seller/products");
+        router.refresh();
+      } catch (requestError: unknown) {
+        modal.showError({
+          title: "Không thể cập nhật sản phẩm",
+          description: getApiErrorMessage(requestError),
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     let remoteProduct = createdProduct;
     try {
       if (!remoteProduct) {
@@ -377,6 +475,21 @@ export function SellerProductCreateScreen() {
     }
   }
 
+  if (isEditing && loadError) {
+    return (
+      <div className="mx-auto w-full max-w-[760px] px-4 py-12 sm:px-6">
+        <Link href="/seller/products" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 transition hover:text-violet-700">
+          <ArrowLeft className="size-4" /> Quản lý sản phẩm
+        </Link>
+        <div className="mt-5 rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+          <CircleAlert className="mx-auto size-10 text-rose-500" />
+          <h1 className="mt-3 text-xl font-black text-slate-950">Không thể mở sản phẩm</h1>
+          <p className="mt-2 text-sm text-slate-500">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-[1180px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -384,10 +497,16 @@ export function SellerProductCreateScreen() {
           <Link href="/seller/products" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 transition hover:text-violet-700">
             <ArrowLeft className="size-4" /> Quản lý sản phẩm
           </Link>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Thêm sản phẩm</h1>
-          <p className="mt-1 text-sm text-slate-500">Tạo mặt hàng mới bằng dữ liệu thật của gian hàng.</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+            {isEditing ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {isEditing
+              ? "Cập nhật dữ liệu thật; hình thức giao hàng và loại dữ liệu được khóa sau khi tạo."
+              : "Tạo mặt hàng mới bằng dữ liệu thật của gian hàng."}
+          </p>
         </div>
-        <ol className="flex items-center gap-2 text-xs font-bold" aria-label="Tiến trình tạo sản phẩm">
+        <ol className="flex items-center gap-2 text-xs font-bold" aria-label={isEditing ? "Tiến trình chỉnh sửa sản phẩm" : "Tiến trình tạo sản phẩm"}>
           <li className={`flex items-center gap-2 rounded-full px-3 py-2 ${step === 1 ? "bg-violet-600 text-white" : "bg-emerald-100 text-emerald-700"}`}>
             {step === 2 ? <Check className="size-4" /> : <span>1</span>} Thông tin
           </li>
@@ -395,6 +514,12 @@ export function SellerProductCreateScreen() {
           <li className={`rounded-full px-3 py-2 ${step === 2 ? "bg-violet-600 text-white" : "bg-white text-slate-400"}`}>2 Biến thể &amp; giá</li>
         </ol>
       </div>
+
+      {isLoadingExisting ? (
+        <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700">
+          Đang tải dữ liệu cũ của sản phẩm...
+        </div>
+      ) : null}
 
       {createdProduct ? (
         <div className="mt-5 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -439,7 +564,7 @@ export function SellerProductCreateScreen() {
                     {([[
                       "ACCOUNT", "Tài khoản số",
                     ], ["OTHER", "Sản phẩm khác"]] as const).map(([value, label]) => (
-                      <button key={value} type="button" onClick={() => patchProduct("productType", value)} className={`h-10 rounded-lg text-sm font-bold transition ${product.productType === value ? "bg-white text-violet-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-800"}`}>
+                      <button key={value} type="button" disabled={isEditing} onClick={() => patchProduct("productType", value)} className={`h-10 rounded-lg text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-70 ${product.productType === value ? "bg-white text-violet-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-800"}`}>
                         {label}
                       </button>
                     ))}
@@ -449,11 +574,11 @@ export function SellerProductCreateScreen() {
                 <div>
                   <span className="mb-2 block text-sm font-bold text-slate-700">Hình thức giao hàng <b className="text-rose-500">*</b></span>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => patchProduct("deliveryType", "INSTANT")} className={`rounded-xl border p-4 text-left transition ${product.deliveryType === "INSTANT" ? "border-violet-500 bg-violet-50 ring-2 ring-violet-100" : "border-slate-200 hover:border-slate-300"}`}>
+                    <button type="button" disabled={isEditing} onClick={() => patchProduct("deliveryType", "INSTANT")} className={`rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-70 ${product.deliveryType === "INSTANT" ? "border-violet-500 bg-violet-50 ring-2 ring-violet-100" : "border-slate-200 hover:border-slate-300"}`}>
                       <span className="flex items-center gap-2 font-black text-slate-900"><Zap className="size-4 text-violet-600" /> Giao ngay</span>
                       <span className="mt-1 block text-xs leading-5 text-slate-500">Hệ thống tự lấy một dòng dữ liệu từ kho để giao buyer.</span>
                     </button>
-                    <button type="button" onClick={() => patchProduct("deliveryType", "PRE_ORDER")} className={`rounded-xl border p-4 text-left transition ${product.deliveryType === "PRE_ORDER" ? "border-amber-500 bg-amber-50 ring-2 ring-amber-100" : "border-slate-200 hover:border-slate-300"}`}>
+                    <button type="button" disabled={isEditing} onClick={() => patchProduct("deliveryType", "PRE_ORDER")} className={`rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-70 ${product.deliveryType === "PRE_ORDER" ? "border-amber-500 bg-amber-50 ring-2 ring-amber-100" : "border-slate-200 hover:border-slate-300"}`}>
                       <span className="flex items-center gap-2 font-black text-slate-900"><Clock3 className="size-4 text-amber-600" /> Đặt hàng</span>
                       <span className="mt-1 block text-xs leading-5 text-slate-500">Shop tiếp nhận rồi xử lý và giao kết quả cho buyer.</span>
                     </button>
@@ -491,14 +616,16 @@ export function SellerProductCreateScreen() {
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={imagePreviewUrl} alt="Xem trước ảnh sản phẩm" className="size-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={removeSelectedImage}
-                        className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-slate-950/70 text-white transition hover:bg-rose-600"
-                        aria-label="Bỏ ảnh đã chọn"
-                      >
-                        <X className="size-4" />
-                      </button>
+                      {imageFile || !isEditing ? (
+                        <button
+                          type="button"
+                          onClick={removeSelectedImage}
+                          className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-slate-950/70 text-white transition hover:bg-rose-600"
+                          aria-label="Bỏ ảnh đã chọn"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      ) : null}
                     </>
                   ) : (
                     <div className="text-center"><ImageIcon className="mx-auto size-9" /><p className="mt-2 text-xs font-bold">Chưa có ảnh</p></div>
@@ -539,18 +666,29 @@ export function SellerProductCreateScreen() {
 
             <div className="mt-5 space-y-4">
               {variants.map((variant, index) => {
-                const stockCount = parseInventory(variant.inventoryText).length;
+                const stockCount = isEditing
+                  ? variant.stockCount
+                  : parseInventory(variant.inventoryText).length;
                 return (
                   <article key={variant.key} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                     <div className="flex items-center justify-between">
                       <span className="rounded-lg bg-violet-100 px-3 py-1.5 text-xs font-black text-violet-700">Biến thể #{index + 1}</span>
-                      {variants.length > 1 ? <button type="button" onClick={() => removeVariant(variant.key)} className="inline-grid size-9 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label={`Xóa biến thể ${index + 1}`}><Trash2 className="size-4" /></button> : null}
+                      {variants.length > 1 && variant.id == null ? <button type="button" onClick={() => removeVariant(variant.key)} className="inline-grid size-9 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label={`Xóa biến thể ${index + 1}`}><Trash2 className="size-4" /></button> : null}
                     </div>
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(180px,.75fr)_minmax(150px,.6fr)]">
+                    <div className={`mt-4 grid gap-4 ${isEditing ? "md:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(160px,.7fr)_minmax(150px,.6fr)_minmax(150px,.6fr)]" : "md:grid-cols-[minmax(0,1.5fr)_minmax(180px,.75fr)_minmax(150px,.6fr)]"}`}>
                       <label><span className="mb-2 block text-xs font-bold text-slate-600">Tên biến thể <b className="text-rose-500">*</b></span><input className={INPUT_CLASS} value={variant.name} maxLength={100} onChange={(event) => patchVariant(variant.key, "name", event.target.value)} placeholder="Ví dụ: Gói 1 tháng" /></label>
                       <label><span className="mb-2 block text-xs font-bold text-slate-600">Giá bán (đ) <b className="text-rose-500">*</b></span><input className={INPUT_CLASS} inputMode="numeric" value={variant.price} onChange={(event) => patchVariant(variant.key, "price", event.target.value.replace(/\D/g, "").slice(0, 9))} placeholder="0" /></label>
                       <label><span className="mb-2 block text-xs font-bold text-slate-600">Thời hạn (ngày)</span><input className={INPUT_CLASS} inputMode="numeric" value={variant.durationDays} onChange={(event) => patchVariant(variant.key, "durationDays", event.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Không bắt buộc" /></label>
+                      {isEditing ? (
+                        <label>
+                          <span className="mb-2 block text-xs font-bold text-slate-600">Trạng thái</span>
+                          <select className={INPUT_CLASS} value={variant.status} onChange={(event) => patchVariant(variant.key, "status", event.target.value as ProductVariantStatus)}>
+                            <option value="ACTIVE">Đang bán</option>
+                            <option value="INACTIVE">Tạm dừng</option>
+                          </select>
+                        </label>
+                      ) : null}
                     </div>
 
                     {product.deliveryType === "INSTANT" ? (
@@ -559,8 +697,19 @@ export function SellerProductCreateScreen() {
                           <div><p className="text-sm font-black text-slate-800">Dữ liệu kho giao ngay</p><p className="mt-0.5 text-xs text-slate-500">Mỗi dòng là một tài khoản, key hoặc nội dung giao cho một lượt mua.</p></div>
                           <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${stockCount ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>Tồn kho: {stockCount}</span>
                         </div>
-                        <textarea value={variant.inventoryText} onChange={(event) => patchVariant(variant.key, "inventoryText", event.target.value)} className="mt-3 min-h-32 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 font-mono text-xs leading-5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100" placeholder={"username|password\nusername2|password2"} />
-                        <p className="mt-2 text-xs text-slate-400">Có thể để trống và nạp kho sau. Mỗi lần tối đa 500 dòng, mỗi dòng tối đa 10.000 ký tự.</p>
+                        {isEditing && editingProductId != null ? (
+                          <div className="mt-3 flex flex-col gap-3 rounded-xl bg-sky-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-xs leading-5 text-sky-800">Credential được quản lý riêng để tránh ghi đè hoặc làm lộ dữ liệu đã bán.</p>
+                            <Link href={`/seller/products/${editingProductId}/inventory`} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-black text-white transition hover:bg-sky-700">
+                              <PackagePlus className="size-4" /> Quản lý kho
+                            </Link>
+                          </div>
+                        ) : (
+                          <>
+                            <textarea value={variant.inventoryText} onChange={(event) => patchVariant(variant.key, "inventoryText", event.target.value)} className="mt-3 min-h-32 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 font-mono text-xs leading-5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100" placeholder={"username|password\nusername2|password2"} />
+                            <p className="mt-2 text-xs text-slate-400">Có thể để trống và nạp kho sau. Mỗi lần tối đa 500 dòng, mỗi dòng tối đa 10.000 ký tự.</p>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
@@ -584,7 +733,13 @@ export function SellerProductCreateScreen() {
           <button type="button" onClick={goToVariants} disabled={formLocked || categoriesLoading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-violet-600 px-6 text-sm font-black text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50">Tiếp theo <ArrowRight className="size-4" /></button>
         ) : (
           <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
-            {isSubmitting ? "Đang lưu..." : createdProduct ? "Thử hoàn tất" : "Tạo sản phẩm"} <ArrowRight className="size-4" />
+            {isSubmitting
+              ? "Đang lưu..."
+              : isEditing
+                ? "Lưu thay đổi"
+                : createdProduct
+                  ? "Thử hoàn tất"
+                  : "Tạo sản phẩm"} <ArrowRight className="size-4" />
           </button>
         )}
       </div>

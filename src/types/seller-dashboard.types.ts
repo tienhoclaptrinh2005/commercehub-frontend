@@ -24,7 +24,8 @@ export interface SellerDashboardData {
   revenue: number;
   availableBalance: number;
   holdBalance: number;
-  activeProductCount: number;
+  newPreOrderRequestCount: number;
+  processingPreOrderCount: number;
   dailyRevenue: SellerDailyRevenue[];
   orderStatusCounts: SellerOrderStatusCount[];
   recentOrders: SellerRecentOrder[];

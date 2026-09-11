@@ -5,6 +5,8 @@ import {
   Eye,
   ImageIcon,
   PackageCheck,
+  PackagePlus,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -25,7 +27,7 @@ import type { ProductDeliveryType, ProductStatus, SellerProductFilters } from "@
 const PAGE_SIZE = 10;
 
 function deliveryLabel(deliveryType: ProductDeliveryType) {
-  return deliveryType === "PRE_ORDER" ? "Đặt trước" : "Giao ngay";
+  return deliveryType === "PRE_ORDER" ? "Đặt hàng" : "Giao ngay";
 }
 
 function productTypeLabel(productType: string) {
@@ -177,7 +179,7 @@ export function SellerProductsScreen() {
           >
             <option value="">Tất cả loại hình</option>
             <option value="INSTANT">Giao ngay</option>
-            <option value="PRE_ORDER">Đặt trước</option>
+            <option value="PRE_ORDER">Đặt hàng</option>
           </select>
         </label>
       </section>
@@ -263,9 +265,19 @@ export function SellerProductsScreen() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <Link href={`/products/${product.slug}`} title="Xem sản phẩm" aria-label={`Xem ${product.name}`} className="inline-grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700">
-                          <Eye className="size-4" />
-                        </Link>
+                        <div className="inline-flex items-center gap-2">
+                          <Link href={`/products/${product.slug}`} title="Xem sản phẩm" aria-label={`Xem ${product.name}`} className="inline-grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700">
+                            <Eye className="size-4" />
+                          </Link>
+                          {product.deliveryType === "INSTANT" ? (
+                            <Link href={`/seller/products/${product.id}/inventory`} title="Thêm và quản lý kho" aria-label={`Quản lý kho ${product.name}`} className="inline-grid size-9 place-items-center rounded-lg border border-sky-200 text-sky-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700">
+                              <PackagePlus className="size-4" />
+                            </Link>
+                          ) : null}
+                          <Link href={`/seller/products/${product.id}/edit`} title="Chỉnh sửa sản phẩm" aria-label={`Chỉnh sửa ${product.name}`} className="inline-grid size-9 place-items-center rounded-lg border border-amber-200 text-amber-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">
+                            <Pencil className="size-4" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

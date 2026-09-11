@@ -7,7 +7,6 @@ import {
   Settings,
   ShieldAlert,
   ShoppingBag,
-  Store,
   TicketPercent,
   WalletCards,
 } from "lucide-react";
@@ -17,6 +16,7 @@ export interface SellerNavigationItem {
   href: string;
   icon: LucideIcon;
   available: boolean;
+  section?: string;
 }
 
 export const sellerNavigation: SellerNavigationItem[] = [
@@ -27,28 +27,29 @@ export const sellerNavigation: SellerNavigationItem[] = [
     available: true,
   },
   {
-    label: "Gian hàng",
-    href: "/seller/shop",
-    icon: Store,
-    available: false,
-  },
-  {
     label: "Sản phẩm",
     href: "/seller/products",
     icon: PackageCheck,
     available: true,
   },
   {
-    label: "Đơn hàng",
+    label: "Đơn Giao ngay",
     href: "/seller/orders",
     icon: ShoppingBag,
     available: false,
+    section: "Quản lý đơn hàng",
   },
   {
-    label: "Đơn đặt trước",
+    label: "Đơn Đặt hàng",
     href: "/seller/pre-orders",
     icon: Clock3,
     available: false,
+  },
+  {
+    label: "Khiếu nại",
+    href: "/seller/disputes",
+    icon: ShieldAlert,
+    available: true,
   },
   {
     label: "Ví & tài chính",
@@ -67,12 +68,6 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/vouchers",
     icon: TicketPercent,
     available: false,
-  },
-  {
-    label: "Khiếu nại",
-    href: "/seller/disputes",
-    icon: ShieldAlert,
-    available: true,
   },
   {
     label: "Cấu hình",

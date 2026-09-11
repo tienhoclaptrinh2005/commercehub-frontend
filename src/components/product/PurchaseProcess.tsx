@@ -15,7 +15,7 @@ const commonSteps = [
   {
     number: "01",
     title: "Chọn đúng loại sản phẩm",
-    description: "Kiểm tra nhãn Giao ngay hoặc Đặt trước, biến thể, giá bán và thông tin của shop.",
+    description: "Kiểm tra nhãn Giao ngay hoặc Đặt hàng, biến thể, giá bán và thông tin của shop.",
     icon: Search,
     tone: "bg-sky-50 text-sky-700 ring-sky-100",
   },

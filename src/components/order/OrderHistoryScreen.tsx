@@ -329,7 +329,7 @@ export function OrderHistoryScreen() {
                       <div>
                         <p className="text-xs font-semibold text-slate-400">Loại giao hàng</p>
                         <p className="text-sm font-bold text-slate-800">
-                          {isInstant ? "Giao ngay" : "Đơn đặt hàng"}
+                          {isInstant ? "Giao ngay" : "Đặt hàng"}
                         </p>
                       </div>
                     </div>

@@ -220,7 +220,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
               : "bg-amber-50 text-amber-700"
           }`}
         >
-          {isInstant ? "Giao ngay" : "Đặt trước"}
+          {isInstant ? "Giao ngay" : "Đặt hàng"}
         </span>
       </div>
 
@@ -243,7 +243,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <p className="text-sm text-slate-500">
             {isInstant
               ? `Kho còn: ${new Intl.NumberFormat("vi-VN").format(availableStock)}`
-              : "Sản phẩm đặt trước"}
+              : "Sản phẩm đặt hàng"}
           </p>
         </div>
         <div className="mt-3 inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white">

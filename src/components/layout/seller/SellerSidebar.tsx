@@ -3,6 +3,7 @@
 import { ArrowLeft, ExternalLink, Store } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Fragment } from "react";
 
 import { BrandLogo } from "@/components/auth/BrandLogo";
 
@@ -29,25 +30,30 @@ export function SellerNavigation({ compact = false }: { compact?: boolean }) {
               : "cursor-not-allowed text-slate-400"
         }`;
 
-        if (!item.available) {
-          return (
-            <span key={item.href} className={className} title="Tính năng sẽ được xây dựng sau">
-              <Icon className="size-[18px] shrink-0" />
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              {!compact ? (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                  Sắp có
-                </span>
-              ) : null}
-            </span>
-          );
-        }
-
         return (
-          <Link key={item.href} href={item.href} className={className}>
-            <Icon className="size-[18px] shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          </Link>
+          <Fragment key={item.href}>
+            {item.section ? (
+              <p className="px-3 pb-1 pt-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 first:pt-0">
+                {item.section}
+              </p>
+            ) : null}
+            {!item.available ? (
+              <span className={className} title="Tính năng sẽ được xây dựng sau">
+                <Icon className="size-[18px] shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {!compact ? (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                    Sắp có
+                  </span>
+                ) : null}
+              </span>
+            ) : (
+              <Link href={item.href} className={className}>
+                <Icon className="size-[18px] shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              </Link>
+            )}
+          </Fragment>
         );
       })}
     </nav>

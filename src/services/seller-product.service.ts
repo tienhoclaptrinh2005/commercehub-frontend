@@ -2,11 +2,18 @@ import type {
   ApiResponse,
   CompleteProductImageUpload,
   CreateSellerProductPayload,
+  CreateSellerProductVariantPayload,
+  DigitalAsset,
+  DigitalAssetImportResult,
   PageResponse,
   ProductSummary,
+  ProductVariant,
   PresignProductImageUpload,
   SellerProductFilters,
   SellerProductListItem,
+  SliceResponse,
+  UpdateSellerProductPayload,
+  UpdateSellerProductVariantPayload,
 } from "@/types";
 
 import { api } from "./api";
@@ -23,6 +30,13 @@ function unwrapProductPage(
 function unwrapProduct(response: ApiResponse<ProductSummary>): ProductSummary {
   if (!response.success || !response.data) {
     throw new Error(response.message || "Không thể cập nhật trạng thái sản phẩm");
+  }
+  return response.data;
+}
+
+function unwrapVariant(response: ApiResponse<ProductVariant>): ProductVariant {
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Không thể cập nhật biến thể sản phẩm");
   }
   return response.data;
 }
@@ -55,6 +69,43 @@ export const sellerProductService = {
       payload,
     );
     return unwrapProduct(response.data);
+  },
+
+  async getProduct(productId: number): Promise<ProductSummary> {
+    const response = await api.get<ApiResponse<ProductSummary>>(
+      `/api/v1/seller/products/${productId}`,
+    );
+    return unwrapProduct(response.data);
+  },
+
+  async updateProduct(
+    productId: number,
+    payload: UpdateSellerProductPayload,
+  ): Promise<ProductSummary> {
+    const response = await api.put<ApiResponse<ProductSummary>>(
+      `/api/v1/seller/products/${productId}`,
+      payload,
+    );
+    return unwrapProduct(response.data);
+  },
+
+  async createVariant(payload: CreateSellerProductVariantPayload): Promise<ProductVariant> {
+    const response = await api.post<ApiResponse<ProductVariant>>(
+      "/api/v1/seller/product-variants",
+      payload,
+    );
+    return unwrapVariant(response.data);
+  },
+
+  async updateVariant(
+    variantId: number,
+    payload: UpdateSellerProductVariantPayload,
+  ): Promise<ProductVariant> {
+    const response = await api.put<ApiResponse<ProductVariant>>(
+      `/api/v1/seller/product-variants/${variantId}`,
+      payload,
+    );
+    return unwrapVariant(response.data);
   },
 
   async uploadProductImage(file: File): Promise<CompleteProductImageUpload> {
@@ -108,8 +159,11 @@ export const sellerProductService = {
     return completed;
   },
 
-  async uploadInventory(variantId: number, rawAssets: string[]): Promise<number> {
-    const response = await api.post<ApiResponse<number>>(
+  async uploadInventory(
+    variantId: number,
+    rawAssets: string[],
+  ): Promise<DigitalAssetImportResult> {
+    const response = await api.post<ApiResponse<DigitalAssetImportResult>>(
       "/api/v1/seller/products/assets/inventory",
       { variantId, rawAssets },
     );
@@ -117,5 +171,47 @@ export const sellerProductService = {
       throw new Error(response.data.message || "Không thể nạp dữ liệu kho");
     }
     return response.data.data;
+  },
+
+  async getInventory(
+    variantId: number,
+    page: number,
+    size = 20,
+  ): Promise<SliceResponse<DigitalAsset>> {
+    const response = await api.get<ApiResponse<SliceResponse<DigitalAsset>>>(
+      `/api/v1/seller/digital-assets/variant/${variantId}`,
+      { params: { page, size } },
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || "Không thể tải dữ liệu kho");
+    }
+    return response.data.data;
+  },
+
+  async deleteInventoryItem(assetId: number): Promise<void> {
+    const response = await api.delete<ApiResponse<null>>(
+      `/api/v1/seller/digital-assets/${assetId}`,
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Không thể xóa dữ liệu kho");
+    }
+  },
+
+  async deleteAllAvailableInventory(variantId: number): Promise<number> {
+    const response = await api.delete<ApiResponse<number>>(
+      `/api/v1/seller/digital-assets/variant/${variantId}/available`,
+    );
+    if (!response.data.success || response.data.data == null) {
+      throw new Error(response.data.message || "Không thể xóa dữ liệu kho");
+    }
+    return response.data.data;
+  },
+
+  async downloadInventory(variantId: number): Promise<Blob> {
+    const response = await api.get<Blob>(
+      `/api/v1/seller/digital-assets/variant/${variantId}/export`,
+      { responseType: "blob" },
+    );
+    return response.data;
   },
 };

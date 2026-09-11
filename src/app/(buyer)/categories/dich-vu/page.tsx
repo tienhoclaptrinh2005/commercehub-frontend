@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ProductsCatalog } from "@/components/product/ProductsCatalog";
 
 export const metadata: Metadata = {
-  title: "Dịch vụ đặt trước | CommerceHub",
-  description: "Khám phá các dịch vụ số được người bán tiếp nhận và xử lý theo đơn đặt trước.",
+  title: "Dịch vụ đặt hàng | CommerceHub",
+  description: "Khám phá các dịch vụ số được người bán tiếp nhận và xử lý theo đơn đặt hàng.",
 };
 
 export default function ServicesPage() {
@@ -26,7 +26,7 @@ export default function ServicesPage() {
 
         <div className="mt-5">
           <h1 className="text-3xl font-bold tracking-[-0.035em] text-slate-950">
-            Dịch vụ đặt trước
+            Dịch vụ đặt hàng
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
             Các dịch vụ được shop tiếp nhận sau khi thanh toán và xử lý trong thời gian đã công bố.

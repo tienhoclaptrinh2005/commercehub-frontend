@@ -95,7 +95,7 @@ export function ProductCard({
                 : "bg-amber-500"
             }`}
           >
-            {product.deliveryType === "INSTANT" ? "Giao ngay" : "Đặt trước"}
+            {product.deliveryType === "INSTANT" ? "Giao ngay" : "Đặt hàng"}
           </span>
         </Link>
 
@@ -204,7 +204,7 @@ export function ProductCard({
       )}
 
       <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-800 shadow-sm backdrop-blur-sm">
-        {product.deliveryType === "INSTANT" ? "Giao ngay" : "Đặt trước"}
+        {product.deliveryType === "INSTANT" ? "Giao ngay" : "Đặt hàng"}
       </span>
     </>
   );
