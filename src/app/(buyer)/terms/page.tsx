@@ -170,7 +170,7 @@ export default function TermsPage() {
           </li>
           <li>
             <strong className="text-slate-900">Sản phẩm đặt hàng:</strong> sau
-            khi thanh toán, shop có tối đa 48 giờ để tiếp nhận. Khi đã tiếp nhận,
+            khi thanh toán, shop có tối đa 24 giờ để tiếp nhận. Khi đã tiếp nhận,
             shop có tối đa 24 giờ để hoàn thành; shop từ chối hoặc quá hạn thì hệ
             thống tự động hủy đơn và hoàn 100% số tiền của đơn về ví người mua.
           </li>

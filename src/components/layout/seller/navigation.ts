@@ -65,7 +65,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     label: "Phí sàn",
     href: "/seller/fees",
     icon: ReceiptText,
-    available: false,
+    available: true,
   },
   {
     label: "Mã giảm giá",

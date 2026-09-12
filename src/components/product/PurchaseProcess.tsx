@@ -11,6 +11,11 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import {
+  PRE_ORDER_ACCEPTANCE_HOURS,
+  PRE_ORDER_PROCESSING_HOURS,
+} from "@/lib/pre-order-policy";
+
 const commonSteps = [
   {
     number: "01",
@@ -108,7 +113,7 @@ export function PurchaseProcess() {
             </div>
             <ol className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
               <li className="flex gap-3"><StepMarker>1</StepMarker><span>Nhấn <strong className="text-slate-900">Đặt hàng</strong> và gửi tối đa 100 ký tự thông tin cần thiết cho shop.</span></li>
-              <li className="flex gap-3"><StepMarker>2</StepMarker><span>Shop có tối đa 48 giờ để nhận đơn; sau khi nhận, shop có 24 giờ để hoàn thành.</span></li>
+              <li className="flex gap-3"><StepMarker>2</StepMarker><span>Shop có tối đa {PRE_ORDER_ACCEPTANCE_HOURS} giờ để nhận đơn; sau khi nhận, shop có {PRE_ORDER_PROCESSING_HOURS} giờ để hoàn thành.</span></li>
               <li className="flex gap-3"><MessageSquareText className="mt-1 size-4 shrink-0 text-amber-700" aria-hidden="true" /><span>Nếu shop từ chối hoặc quá hạn, hệ thống hoàn tiền; kết quả bàn giao được lưu trong chi tiết đơn.</span></li>
             </ol>
           </article>

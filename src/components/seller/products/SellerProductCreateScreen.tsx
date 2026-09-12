@@ -31,6 +31,10 @@ import {
   PRODUCT_IMAGE_WIDTH,
   ProductImageValidationError,
 } from "@/lib/product-image";
+import {
+  PRE_ORDER_ACCEPTANCE_HOURS,
+  PRE_ORDER_PROCESSING_HOURS,
+} from "@/lib/pre-order-policy";
 import { getApiErrorMessage } from "@/services/api";
 import { sellerProductService } from "@/services/seller-product.service";
 import type {
@@ -364,7 +368,7 @@ export function SellerProductCreateScreen({ productId: editingProductId }: Selle
     modal.showSuccess({
       title: "Tạo sản phẩm thành công",
       description: product.deliveryType === "PRE_ORDER"
-        ? "Sản phẩm đặt hàng đã được mở bán với thời gian xử lý tối đa 24 giờ sau khi Shop tiếp nhận."
+        ? `Sản phẩm đặt hàng đã được mở bán. Shop có ${PRE_ORDER_ACCEPTANCE_HOURS} giờ để nhận và ${PRE_ORDER_PROCESSING_HOURS} giờ để hoàn thành sau khi nhận.`
         : "Sản phẩm giao ngay và dữ liệu kho ban đầu đã được lưu.",
     });
     router.push("/seller/products");
@@ -713,7 +717,7 @@ export function SellerProductCreateScreen({ productId: editingProductId }: Selle
                       </div>
                     ) : (
                       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                        <div className="flex gap-3"><Info className="mt-0.5 size-5 shrink-0 text-amber-600" /><div><p className="text-sm font-black text-amber-900">Sản phẩm đặt hàng</p><p className="mt-1 text-xs leading-5 text-amber-800">Không dùng kho tự động. Sau khi Shop tiếp nhận đơn, Shop có tối đa 24 giờ để xử lý và giao kết quả cho buyer.</p></div></div>
+                        <div className="flex gap-3"><Info className="mt-0.5 size-5 shrink-0 text-amber-600" /><div><p className="text-sm font-black text-amber-900">Sản phẩm đặt hàng</p><p className="mt-1 text-xs leading-5 text-amber-800">Không dùng kho tự động. Shop có {PRE_ORDER_ACCEPTANCE_HOURS} giờ để nhận đơn và {PRE_ORDER_PROCESSING_HOURS} giờ tiếp theo để xử lý, giao kết quả cho buyer.</p></div></div>
                         <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-xs font-bold text-slate-700"><span className="grid size-5 place-items-center rounded bg-violet-500 text-white"><Check className="size-3.5" /></span> Không giới hạn tồn kho</div>
                       </div>
                     )}

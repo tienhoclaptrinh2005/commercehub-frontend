@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 
 import { formatCurrency } from "@/lib/format";
+import { PRE_ORDER_PROCESSING_HOURS } from "@/lib/pre-order-policy";
 import type { CartItem as CartItemData } from "@/types";
 
 interface CartItemProps {
@@ -134,7 +135,7 @@ export function CartItem({
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
             <p className="flex items-center gap-2 font-bold">
               <Clock3 className="size-4 shrink-0" />
-              Xử lý trong tối đa {item.maxProcessingHours ?? 24} giờ
+              Xử lý trong tối đa {PRE_ORDER_PROCESSING_HOURS} giờ sau khi shop nhận đơn
             </p>
             <p className="mt-1">
               Đây là sản phẩm dịch vụ (đặt hàng). Sau khi thanh toán, vui lòng liên hệ shop hoặc đợi shop hoàn thành đơn.

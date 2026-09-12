@@ -225,14 +225,14 @@ function ProductInformationTabs({ product }: { product: ProductDetail }) {
               <p className="mt-3 text-sm text-slate-600">{reviewsError}</p>
               <button
                 type="button"
-                onClick={() => void loadReviews(reviews?.number ?? 0)}
+                onClick={() => void loadReviews(reviews?.currentPage ?? 0)}
                 className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
               >
                 <RotateCw className="size-4" />
                 Thử lại
               </button>
             </div>
-          ) : !reviews || reviews.empty ? (
+          ) : !reviews || reviews.data.length === 0 ? (
             <div className="py-8 text-center">
               <span className="mx-auto grid size-12 place-items-center rounded-full bg-amber-50 text-amber-500">
                 <MessageSquareText className="size-6" />
@@ -256,7 +256,7 @@ function ProductInformationTabs({ product }: { product: ProductDetail }) {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {reviews.content.map((review) => (
+                {reviews.data.map((review) => (
                   <article key={review.id} className="flex gap-3 py-5 first:pt-0 last:pb-0">
                     <ReviewAvatar review={review} />
                     <div className="min-w-0 flex-1">
@@ -286,19 +286,19 @@ function ProductInformationTabs({ product }: { product: ProductDetail }) {
                 <div className="mt-6 flex items-center justify-center gap-3 border-t border-slate-100 pt-5">
                   <button
                     type="button"
-                    disabled={reviews.first || isLoadingReviews}
-                    onClick={() => void loadReviews(reviews.number - 1)}
+                    disabled={reviews.currentPage <= 0 || isLoadingReviews}
+                    onClick={() => void loadReviews(reviews.currentPage - 1)}
                     className="h-9 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Trang trước
                   </button>
                   <span className="text-sm font-semibold text-slate-500">
-                    {reviews.number + 1}/{reviews.totalPages}
+                    {reviews.currentPage + 1}/{reviews.totalPages}
                   </span>
                   <button
                     type="button"
-                    disabled={reviews.last || isLoadingReviews}
-                    onClick={() => void loadReviews(reviews.number + 1)}
+                    disabled={reviews.currentPage + 1 >= reviews.totalPages || isLoadingReviews}
+                    onClick={() => void loadReviews(reviews.currentPage + 1)}
                     className="h-9 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Trang sau

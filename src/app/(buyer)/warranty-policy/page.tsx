@@ -128,14 +128,14 @@ export default function WarrantyPolicyPage() {
           <div className="text-sm leading-6">
             <p className="font-bold">Đơn đặt hàng được xử lý theo hai thời hạn:</p>
             <p className="mt-1">
-              Shop có tối đa 48 giờ để nhận đơn; sau khi nhận có tối đa 24 giờ
+              Shop có tối đa 24 giờ để nhận đơn; sau khi nhận có tối đa 24 giờ
               để hoàn thành và bàn giao kết quả.
             </p>
           </div>
         </div>
         <ul className={listClassName}>
           <li>Buyer cần nhập đúng thông tin gửi shop và không vượt quá giới hạn 100 ký tự.</li>
-          <li>Shop từ chối, không nhận trong 48 giờ hoặc đã nhận nhưng không hoàn thành trong 24 giờ: đơn bị hủy và buyer được hoàn 100% về ví.</li>
+          <li>Shop từ chối, không nhận trong 24 giờ hoặc đã nhận nhưng không hoàn thành trong 24 giờ: đơn bị hủy và buyer được hoàn 100% về ví.</li>
           <li>Sau khi shop hoàn thành và hệ thống ghi nhận giao hàng, mục hàng chuyển sang giai đoạn giữ tiền T+7.</li>
         </ul>
       </section>

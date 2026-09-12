@@ -1,0 +1,2 @@
+export const PRE_ORDER_ACCEPTANCE_HOURS = 24;
+export const PRE_ORDER_PROCESSING_HOURS = 24;

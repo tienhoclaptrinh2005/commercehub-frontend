@@ -17,6 +17,7 @@ import { useMemo, useRef, useState } from "react";
 import { useAppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { formatCurrency } from "@/lib/format";
+import { PRE_ORDER_PROCESSING_HOURS } from "@/lib/pre-order-policy";
 import { getApiErrorMessage } from "@/services/api";
 import { checkoutService } from "@/services/checkout.service";
 import { useCartStore } from "@/stores/cartStore";
@@ -94,9 +95,6 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           {isPreOrder ? (
             <PreOrderCheckoutFields
               initialValue={buyerInputsRef.current}
-              maxProcessingHours={
-                product.preOrderConfig?.maxProcessingHours ?? 24
-              }
               onChange={(value) => {
                 buyerInputsRef.current = value;
                 setRetryIdempotencyKey(null);
@@ -383,11 +381,9 @@ function OrderCheckoutSummary({
 
 function PreOrderCheckoutFields({
   initialValue,
-  maxProcessingHours,
   onChange,
 }: {
   initialValue: string;
-  maxProcessingHours: number;
   onChange: (value: string) => void;
 }) {
   const [value, setValue] = useState(initialValue);
@@ -397,7 +393,7 @@ function PreOrderCheckoutFields({
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900">
         <p className="flex items-center gap-2 font-bold">
           <Clock3 className="size-4 shrink-0" />
-          Xử lý trong tối đa {maxProcessingHours} giờ
+          Xử lý trong tối đa {PRE_ORDER_PROCESSING_HOURS} giờ sau khi shop nhận đơn
         </p>
         <p className="mt-1 text-xs leading-5 text-amber-800">
           Đây là sản phẩm dịch vụ (đặt hàng). Sau khi thanh toán, vui lòng liên

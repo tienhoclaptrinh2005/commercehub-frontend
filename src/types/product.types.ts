@@ -86,14 +86,11 @@ export interface ProductReview {
 }
 
 export interface ProductReviewPage {
-  content: ProductReview[];
+  data: ProductReview[];
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  pageSize: number;
+  currentPage: number;
 }
 
 export interface ProductListFilters {
