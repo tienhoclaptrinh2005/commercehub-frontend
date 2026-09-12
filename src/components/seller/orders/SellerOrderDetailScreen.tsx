@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock3,
+  Copy,
+  KeyRound,
   LoaderCircle,
   MessageSquareText,
   PackageCheck,
@@ -25,7 +27,7 @@ import {
   type CompleteSellerOrderItem,
   type DeliveryContentType,
 } from "@/services/seller-order.service";
-import type { OrderDetail } from "@/types";
+import type { DeliveredAsset, OrderDetail } from "@/types";
 
 interface SellerOrderDetailScreenProps {
   orderId: number;
@@ -60,6 +62,14 @@ function paymentStatusLabel(status: string): string {
   if (status === "PARTIAL_REFUND") return "Hoàn tiền một phần";
   if (status === "PAID") return "Đã thanh toán";
   return "Chưa thanh toán";
+}
+
+function assetTypeLabel(assetType: string): string {
+  if (assetType === "ACCOUNT") return "Tài khoản";
+  if (assetType === "LICENSE") return "Mã bản quyền";
+  if (assetType === "GIFTCARD") return "Thẻ quà tặng";
+  if (assetType === "COOKIE") return "Cookie";
+  return "Nội dung số";
 }
 
 function ReasonField({ onChange }: { onChange: (value: string) => void }) {
@@ -97,6 +107,12 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
   }>({ requestKey: "", order: null, error: null });
   const [isMutating, setIsMutating] = useState(false);
   const [drafts, setDrafts] = useState<Record<number, DeliveryDraft>>({});
+  const [assetState, setAssetState] = useState<{
+    requestKey: string;
+    assets: DeliveredAsset[];
+    error: string | null;
+    isLoading: boolean;
+  }>({ requestKey: "", assets: [], error: null, isLoading: false });
   const [renderedAt] = useState(() => Date.now());
   const isValidOrderId = Number.isSafeInteger(orderId) && orderId > 0;
   const isLoading = isValidOrderId && state.requestKey !== requestKey;
@@ -119,6 +135,26 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
             sellerNotes: "",
           },
         ])));
+        if (detail.deliveryType === "INSTANT") {
+          setAssetState({ requestKey, assets: [], error: null, isLoading: true });
+          sellerOrderService
+            .getDeliveredAssets(orderId)
+            .then((assets) => {
+              if (!cancelled) setAssetState({ requestKey, assets, error: null, isLoading: false });
+            })
+            .catch((assetError: unknown) => {
+              if (!cancelled) {
+                setAssetState({
+                  requestKey,
+                  assets: [],
+                  error: getApiErrorMessage(assetError, "Không thể tải thông tin tài khoản đã giao"),
+                  isLoading: false,
+                });
+              }
+            });
+        } else {
+          setAssetState({ requestKey, assets: [], error: null, isLoading: false });
+        }
       })
       .catch((requestError: unknown) => {
         if (!cancelled) {
@@ -136,6 +172,15 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
 
   function reloadOrder() {
     setReloadKey((current) => current + 1);
+  }
+
+  async function copyAssetContent(content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      modal.showSuccess({ title: "Đã sao chép thông tin tài khoản" });
+    } catch {
+      modal.showError({ title: "Không thể sao chép", description: "Trình duyệt không cho phép truy cập clipboard." });
+    }
   }
 
   async function updateOrder(action: "accept" | "reject" | "cancel") {
@@ -360,6 +405,65 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
           ))}
         </div>
       </section>
+
+      {order.deliveryType === "INSTANT" ? (
+        <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+              <KeyRound className="size-5" />
+            </span>
+            <div>
+              <h2 className="font-black text-slate-950">Thông tin tài khoản đã bán</h2>
+              <p className="mt-1 text-xs text-slate-500">Bản chụp nội dung hệ thống đã giao cho người mua trong đơn này.</p>
+            </div>
+          </div>
+
+          {assetState.isLoading || assetState.requestKey !== requestKey ? (
+            <div className="flex min-h-28 items-center justify-center gap-2 px-5 py-8 text-sm font-semibold text-slate-500">
+              <LoaderCircle className="size-5 animate-spin text-violet-600" /> Đang tải thông tin tài khoản...
+            </div>
+          ) : assetState.error ? (
+            <div className="m-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+              {assetState.error}
+            </div>
+          ) : assetState.assets.length ? (
+            <div className="divide-y divide-slate-100">
+              {assetState.assets.map((asset, index) => {
+                const item = order.items.find((orderItem) => orderItem.id === asset.orderItemId);
+                return (
+                  <article key={`${asset.id}-${asset.orderItemId}`} className="p-5 sm:p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">
+                          {assetTypeLabel(asset.assetType)} #{index + 1}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {item ? `${item.productName} — ${item.variantName}` : `Dòng đơn #${asset.orderItemId}`}
+                          {asset.deliveredAt ? ` · Đã giao ${formatDateTime(asset.deliveredAt)}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void copyAssetContent(asset.content)}
+                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+                      >
+                        <Copy className="size-3.5" /> Sao chép
+                      </button>
+                    </div>
+                    <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-sm leading-6 text-emerald-300">
+                      {asset.content}
+                    </pre>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+              Không tìm thấy bản ghi tài khoản đã giao của đơn này.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       {order.deliveryType === "PRE_ORDER" && order.status === "PROCESSING" ? (
         <form id="complete-order" onSubmit={completeOrder} className="mt-5 scroll-mt-24 rounded-2xl border border-violet-200 bg-white p-5 shadow-sm sm:p-6">

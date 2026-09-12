@@ -4,14 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BadgeCheck,
   Camera,
-  Link2,
+  ImageUp,
   Mail,
   Phone,
   TriangleAlert,
   UserRound,
   UserRoundCog,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { useAppModal } from "@/components/ui/app-modal";
@@ -20,10 +20,9 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { useMyProfile } from "@/hooks/api/useUserProfile";
 import { readAuthSession, saveAuthSession } from "@/lib/auth";
+import { prepareAvatarImage } from "@/lib/images/avatar-image";
 import {
-  avatarSchema,
   profileEditSchema,
-  type AvatarFormValues,
   type ProfileEditFormValues,
 } from "@/lib/validations/profile.schema";
 import { getApiErrorMessage } from "@/services/api";
@@ -37,6 +36,11 @@ export function ProfileEditForm() {
   const { profile, setProfile, isLoading, error, refresh } = useMyProfile();
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [isPreparingAvatar, setIsPreparingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [avatarFileError, setAvatarFileError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -48,16 +52,6 @@ export function ProfileEditForm() {
     defaultValues: { username: "", fullName: "", phone: "" },
   });
 
-  const {
-    register: registerAvatar,
-    reset: resetAvatar,
-    handleSubmit: handleAvatarSubmit,
-    formState: { errors: avatarErrors },
-  } = useForm<AvatarFormValues>({
-    resolver: zodResolver(avatarSchema),
-    defaultValues: { avatarUrl: "" },
-  });
-
   useEffect(() => {
     if (!profile) return;
     reset({
@@ -65,8 +59,13 @@ export function ProfileEditForm() {
       fullName: profile.fullName,
       phone: profile.phone || "",
     });
-    resetAvatar({ avatarUrl: profile.avatarUrl || "" });
-  }, [profile, reset, resetAvatar]);
+  }, [profile, reset]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    };
+  }, [avatarPreviewUrl]);
 
   const isSellerIdentityLocked =
     profile?.roles.includes("SELLER") && profile.shopStatus === "ACTIVE";
@@ -149,15 +148,43 @@ export function ProfileEditForm() {
     }
   });
 
-  const onAvatarSubmit = handleAvatarSubmit(async ({ avatarUrl }) => {
+  const selectAvatarFile = async (source?: File) => {
+    if (!source) return;
+
+    setAvatarFileError(null);
+    setIsPreparingAvatar(true);
+    try {
+      const prepared = await prepareAvatarImage(source);
+      setAvatarFile(prepared);
+      setAvatarPreviewUrl(URL.createObjectURL(prepared));
+    } catch (prepareError) {
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setAvatarFileError(
+        prepareError instanceof Error
+          ? prepareError.message
+          : "Không thể xử lý ảnh đã chọn.",
+      );
+    } finally {
+      setIsPreparingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const onAvatarSubmit = async () => {
+    if (!avatarFile) {
+      setAvatarFileError("Vui lòng chọn một ảnh đại diện hợp lệ trước.");
+      return;
+    }
+
     setIsSavingAvatar(true);
     try {
-      const nextProfile = await userService.updateAvatar({
-        avatarUrl: avatarUrl.trim(),
-      });
+      const nextProfile = await userService.uploadAvatar(avatarFile);
       setProfile(nextProfile);
       syncHeaderIdentity(nextProfile);
-      resetAvatar({ avatarUrl: nextProfile.avatarUrl || "" });
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setAvatarFileError(null);
       modal.showSuccess({
         title: "Cập nhật ảnh thành công",
         description: "Ảnh đại diện mới đã được áp dụng cho tài khoản của bạn.",
@@ -175,7 +202,7 @@ export function ProfileEditForm() {
     } finally {
       setIsSavingAvatar(false);
     }
-  });
+  };
 
   if (isLoading && !profile) {
     return (
@@ -214,13 +241,19 @@ export function ProfileEditForm() {
           <div className="-mt-12 flex items-end gap-4">
             <div className="relative">
               <ProfileAvatar
-                avatarUrl={profile.avatarUrl}
+                avatarUrl={avatarPreviewUrl || profile.avatarUrl}
                 fullName={profile.fullName}
                 className="size-28"
               />
-              <span className="absolute bottom-1 right-0 grid size-9 place-items-center rounded-full border-2 border-white bg-emerald-500 text-white shadow-md">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isPreparingAvatar || isSavingAvatar}
+                className="absolute bottom-1 right-0 grid size-9 place-items-center rounded-full border-2 border-white bg-emerald-500 text-white shadow-md transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Chọn ảnh đại diện"
+              >
                 <Camera className="size-4" />
-              </span>
+              </button>
             </div>
             <div className="pb-2">
               <p className="text-lg font-bold text-slate-950">
@@ -233,48 +266,86 @@ export function ProfileEditForm() {
           </div>
 
           <form
-            onSubmit={onAvatarSubmit}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void onAvatarSubmit();
+            }}
             className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4"
             noValidate
           >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-              <div className="min-w-0 flex-1">
-                <FormField
-                  id="avatarUrl"
-                  label="URL ảnh đại diện"
-                  error={avatarErrors.avatarUrl?.message}
-                >
-                  <div className="relative">
-                    <Link2 className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="avatarUrl"
-                      type="url"
-                      placeholder="https://cdn.example.com/avatar.jpg"
-                      hasError={Boolean(avatarErrors.avatarUrl)}
-                      aria-describedby={
-                        avatarErrors.avatarUrl
-                          ? "avatarUrl-error"
-                          : "avatar-url-help"
-                      }
-                      {...registerAvatar("avatarUrl")}
-                    />
-                  </div>
-                </FormField>
-                <p
-                  id="avatar-url-help"
-                  className="mt-2 text-xs leading-5 text-slate-500"
-                >
-                  Backend hiện nhận URL ảnh; chưa có endpoint upload file trực
-                  tiếp.
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(event) => void selectAvatarFile(event.target.files?.[0])}
+            />
+
+            <div
+              className={`rounded-xl border-2 border-dashed px-5 py-6 text-center transition ${
+                avatarFileError
+                  ? "border-rose-300 bg-rose-50"
+                  : "border-slate-300 bg-white hover:border-emerald-400"
+              }`}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                void selectAvatarFile(event.dataTransfer.files?.[0]);
+              }}
+            >
+              <span className="mx-auto grid size-11 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                <ImageUp className="size-5" />
+              </span>
+              <p className="mt-3 text-sm font-bold text-slate-900">
+                {avatarFile
+                  ? "Ảnh đã sẵn sàng để tải lên"
+                  : "Chọn hoặc kéo ảnh đại diện vào đây"}
+              </p>
+              {avatarFile ? (
+                <p className="mt-1 text-xs font-medium text-emerald-700">
+                  WebP 512 × 512 px · {Math.max(1, Math.round(avatarFile.size / 1024))} KB
                 </p>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  JPEG, PNG hoặc WebP · vuông 1:1 · 256–2048 px · tối đa 1 MB
+                </p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">
+                Hệ thống tự chuyển sang WebP 512 × 512, chất lượng 83%, loại bỏ metadata;
+                dung lượng lý tưởng 50–200 KB.
+              </p>
+              {avatarFileError ? (
+                <p className="mt-2 text-sm font-semibold text-rose-600" role="alert">
+                  {avatarFileError}
+                </p>
+              ) : null}
+
+              <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isSavingAvatar || isPreparingAvatar}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-5 text-sm font-bold text-emerald-800 transition hover:border-emerald-400 hover:bg-emerald-100 hover:text-emerald-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 sm:w-auto"
+                >
+                  {isPreparingAvatar ? (
+                    <span
+                      className="size-4 animate-spin rounded-full border-2 border-emerald-800/30 border-t-emerald-800"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <ImageUp className="size-4" aria-hidden="true" />
+                  )}
+                  {isPreparingAvatar ? "Đang xử lý..." : "Chọn ảnh"}
+                </button>
+                <Button
+                  type="submit"
+                  isLoading={isSavingAvatar}
+                  disabled={!avatarFile || isPreparingAvatar}
+                  className="w-full sm:w-auto"
+                >
+                  {isSavingAvatar ? "Đang tải lên..." : "Tải lên và cập nhật"}
+                </Button>
               </div>
-              <Button
-                type="submit"
-                isLoading={isSavingAvatar}
-                className="w-full lg:w-auto"
-              >
-                {isSavingAvatar ? "Đang cập nhật..." : "Cập nhật ảnh"}
-              </Button>
             </div>
           </form>
         </div>

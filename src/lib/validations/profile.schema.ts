@@ -23,14 +23,6 @@ export const profileEditSchema = z.object({
     }),
 });
 
-export const avatarSchema = z.object({
-  avatarUrl: z
-    .string()
-    .trim()
-    .min(1, "Vui lòng nhập URL ảnh đại diện")
-    .url("URL ảnh đại diện không hợp lệ"),
-});
-
 export const changePasswordSchema = z
   .object({
     oldPassword: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
@@ -50,6 +42,4 @@ export const changePasswordSchema = z
   });
 
 export type ProfileEditFormValues = z.infer<typeof profileEditSchema>;
-export type AvatarFormValues = z.infer<typeof avatarSchema>;
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
-

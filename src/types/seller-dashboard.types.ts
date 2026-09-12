@@ -30,3 +30,7 @@ export interface SellerDashboardData {
   orderStatusCounts: SellerOrderStatusCount[];
   recentOrders: SellerRecentOrder[];
 }
+
+export interface SellerNotificationData {
+  newPreOrderRequestCount: number;
+}

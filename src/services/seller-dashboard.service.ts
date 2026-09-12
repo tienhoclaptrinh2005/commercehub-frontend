@@ -1,4 +1,8 @@
-import type { ApiResponse, SellerDashboardData } from "@/types";
+import type {
+  ApiResponse,
+  SellerDashboardData,
+  SellerNotificationData,
+} from "@/types";
 
 import { api } from "./api";
 
@@ -11,6 +15,18 @@ export const sellerDashboardService = {
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || "Không nhận được dữ liệu tổng quan bán hàng");
+    }
+
+    return response.data.data;
+  },
+
+  async getNotifications(): Promise<SellerNotificationData> {
+    const response = await api.get<ApiResponse<SellerNotificationData>>(
+      "/api/v1/seller/dashboard/notifications",
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || "Không nhận được thông báo bán hàng");
     }
 
     return response.data.data;

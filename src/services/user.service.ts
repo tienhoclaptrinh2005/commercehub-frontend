@@ -1,8 +1,8 @@
 import type {
   ApiResponse,
   ChangePasswordRequest,
+  PresignAvatarImageUpload,
   PublicUserProfile,
-  UpdateAvatarRequest,
   UpdateProfileRequest,
   UserLevel,
   UserProfile,
@@ -66,12 +66,55 @@ export const userService = {
     return unwrapData(response.data, "Không nhận được hồ sơ sau khi cập nhật");
   },
 
-  async updateAvatar(payload: UpdateAvatarRequest): Promise<UserProfile> {
-    const response = await api.patch<ApiResponse<UserProfile>>(
-      "/api/v1/users/me/avatar",
-      payload,
+  async uploadAvatar(file: File): Promise<UserProfile> {
+    const presignResponse = await api.post<ApiResponse<PresignAvatarImageUpload>>(
+      "/api/v1/users/me/avatar/uploads/presign",
+      {
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size,
+      },
     );
-    return unwrapData(response.data, "Không nhận được ảnh đại diện sau khi cập nhật");
+    const presign = unwrapData(
+      presignResponse.data,
+      "Không thể tạo đường dẫn tải ảnh đại diện",
+    );
+
+    const abortController = new AbortController();
+    const timeout = window.setTimeout(() => abortController.abort(), 60_000);
+    try {
+      // Presigned URL chỉ nhận các header đã ký; không gửi JWT hay header JSON
+      // của API client sang Cloudflare.
+      const uploadResponse = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+          "Cache-Control": presign.cacheControl,
+        },
+        body: file,
+        signal: abortController.signal,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(
+          "Cloudflare R2 từ chối tải ảnh. Vui lòng kiểm tra CORS và thử lại.",
+        );
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new Error("Tải ảnh quá thời gian 60 giây. Vui lòng thử lại.");
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+
+    const completeResponse = await api.post<ApiResponse<UserProfile>>(
+      "/api/v1/users/me/avatar/uploads/complete",
+      { objectKey: presign.objectKey },
+    );
+    return unwrapData(
+      completeResponse.data,
+      "Không nhận được ảnh đại diện sau khi cập nhật",
+    );
   },
 };
-

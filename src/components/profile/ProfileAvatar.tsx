@@ -1,5 +1,6 @@
 import { UserRound } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,8 @@ interface ProfileAvatarProps {
 }
 
 export function ProfileAvatar({ avatarUrl, fullName, className }: ProfileAvatarProps) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+
   return (
     <span
       className={cn(
@@ -17,7 +20,7 @@ export function ProfileAvatar({ avatarUrl, fullName, className }: ProfileAvatarP
         className,
       )}
     >
-      {avatarUrl ? (
+      {avatarUrl && failedImageUrl !== avatarUrl ? (
         <Image
           src={avatarUrl}
           alt={`Ảnh đại diện của ${fullName}`}
@@ -25,6 +28,7 @@ export function ProfileAvatar({ avatarUrl, fullName, className }: ProfileAvatarP
           sizes="128px"
           className="object-cover"
           unoptimized
+          onError={() => setFailedImageUrl(avatarUrl)}
         />
       ) : (
         <UserRound className="size-1/2" strokeWidth={1.5} />

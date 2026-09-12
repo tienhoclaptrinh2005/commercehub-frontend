@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useSellerDashboard } from "@/hooks/api/useSellerDashboard";
+import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
 import { formatCurrency } from "@/lib/format";
 import type { SellerOrderStatusCount } from "@/types";
 
@@ -108,6 +109,10 @@ function statusPresentation(status: string): {
 export function SellerDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(currentBusinessMonth);
   const { data, error, isLoading, refresh } = useSellerDashboard(selectedMonth);
+  const liveNewPreOrderRequestCount = useSellerNotifications();
+  const newPreOrderRequestCount = liveNewPreOrderRequestCount
+    ?? data?.newPreOrderRequestCount
+    ?? null;
 
   const overviewCards: Array<{
     label: string;
@@ -115,6 +120,7 @@ export function SellerDashboard() {
     note: string;
     icon: LucideIcon;
     tone: string;
+    notificationCount?: number;
   }> = [
     {
       label: "Đơn trong tháng",
@@ -146,10 +152,11 @@ export function SellerDashboard() {
     },
     {
       label: "Yêu cầu Đặt hàng",
-      value: data ? formatCount(data.newPreOrderRequestCount ?? 0) : "—",
+      value: newPreOrderRequestCount === null ? "—" : formatCount(newPreOrderRequestCount),
       note: "Đang chờ bạn xác nhận",
       icon: Clock3,
       tone: "bg-orange-50 text-orange-600",
+      notificationCount: newPreOrderRequestCount ?? undefined,
     },
     {
       label: "Đặt hàng đang làm",
@@ -201,7 +208,7 @@ export function SellerDashboard() {
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Chỉ số bán hàng">
-        {overviewCards.map(({ label, value, note, icon: Icon, tone }) => (
+        {overviewCards.map(({ label, value, note, icon: Icon, tone, notificationCount }) => (
           <article key={label} className="relative min-h-28 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -212,8 +219,17 @@ export function SellerDashboard() {
                   <p className="mt-1.5 truncate text-xl font-extrabold tracking-[-0.035em] text-slate-950" title={value}>{value}</p>
                 )}
               </div>
-              <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${tone}`}>
+              <span className={`relative grid size-9 shrink-0 place-items-center rounded-xl ${tone}`}>
                 <Icon className="size-[18px]" />
+                {notificationCount ? (
+                  <span
+                    className="absolute -right-2 -top-2 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-sm ring-2 ring-white"
+                    aria-label={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
+                    title={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
+                  >
+                    {notificationCount > 9 ? "9+" : notificationCount}
+                  </span>
+                ) : null}
               </span>
             </div>
             <p className="mt-3 line-clamp-2 text-[11px] font-medium leading-4 text-slate-400">{note}</p>

@@ -53,11 +53,16 @@ export interface UserLevel {
 export interface UpdateProfileRequest {
   fullName: string;
   phone?: string;
-  avatarUrl?: string;
 }
 
-export interface UpdateAvatarRequest {
-  avatarUrl: string;
+export interface PresignAvatarImageUpload {
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  maxFileSizeBytes: number;
+  requiredWidth: number;
+  requiredHeight: number;
+  cacheControl: string;
 }
 
 export interface ChangePasswordRequest {

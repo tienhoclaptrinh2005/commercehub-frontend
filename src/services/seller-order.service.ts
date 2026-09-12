@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  DeliveredAsset,
   OrderDetail,
   OrderSummary,
   SpringSlice,
@@ -67,6 +68,13 @@ export const sellerOrderService = {
       `/api/v1/seller/orders/${orderId}`,
     );
     return unwrapData(response.data, "Không nhận được chi tiết đơn bán");
+  },
+
+  async getDeliveredAssets(orderId: number): Promise<DeliveredAsset[]> {
+    const response = await api.get<ApiResponse<DeliveredAsset[]>>(
+      `/api/v1/seller/orders/${orderId}/assets`,
+    );
+    return unwrapData(response.data, "Không nhận được thông tin tài khoản đã giao");
   },
 
   async accept(orderId: number): Promise<void> {
