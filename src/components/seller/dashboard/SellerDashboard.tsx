@@ -6,6 +6,7 @@ import {
   CircleAlert,
   CircleDollarSign,
   Clock3,
+  Eye,
   PackageCheck,
   RefreshCw,
   RotateCcw,
@@ -109,8 +110,8 @@ function statusPresentation(status: string): {
 export function SellerDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(currentBusinessMonth);
   const { data, error, isLoading, refresh } = useSellerDashboard(selectedMonth);
-  const liveNewPreOrderRequestCount = useSellerNotifications();
-  const newPreOrderRequestCount = liveNewPreOrderRequestCount
+  const { data: liveNotifications } = useSellerNotifications();
+  const newPreOrderRequestCount = liveNotifications?.newPreOrderRequestCount
     ?? data?.newPreOrderRequestCount
     ?? null;
 
@@ -121,6 +122,8 @@ export function SellerDashboard() {
     icon: LucideIcon;
     tone: string;
     notificationCount?: number;
+    actionHref?: string;
+    actionLabel?: string;
   }> = [
     {
       label: "Đơn trong tháng",
@@ -157,6 +160,8 @@ export function SellerDashboard() {
       icon: Clock3,
       tone: "bg-orange-50 text-orange-600",
       notificationCount: newPreOrderRequestCount ?? undefined,
+      actionHref: "/seller/orders/pre-orders",
+      actionLabel: "Xem các yêu cầu đặt hàng",
     },
     {
       label: "Đặt hàng đang làm",
@@ -208,7 +213,16 @@ export function SellerDashboard() {
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Chỉ số bán hàng">
-        {overviewCards.map(({ label, value, note, icon: Icon, tone, notificationCount }) => (
+        {overviewCards.map(({
+          label,
+          value,
+          note,
+          icon: Icon,
+          tone,
+          notificationCount,
+          actionHref,
+          actionLabel,
+        }) => (
           <article key={label} className="relative min-h-28 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -219,18 +233,30 @@ export function SellerDashboard() {
                   <p className="mt-1.5 truncate text-xl font-extrabold tracking-[-0.035em] text-slate-950" title={value}>{value}</p>
                 )}
               </div>
-              <span className={`relative grid size-9 shrink-0 place-items-center rounded-xl ${tone}`}>
-                <Icon className="size-[18px]" />
-                {notificationCount ? (
-                  <span
-                    className="absolute -right-2 -top-2 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-sm ring-2 ring-white"
-                    aria-label={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
-                    title={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
+              <div className="flex shrink-0 items-center gap-2">
+                {actionHref ? (
+                  <Link
+                    href={actionHref}
+                    className="grid size-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+                    aria-label={actionLabel}
+                    title={actionLabel}
                   >
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </span>
+                    <Eye className="size-[17px]" />
+                  </Link>
                 ) : null}
-              </span>
+                <span className={`relative grid size-9 place-items-center rounded-xl ${tone}`}>
+                  <Icon className="size-[18px]" />
+                  {notificationCount ? (
+                    <span
+                      className="absolute -right-2 -top-2 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-sm ring-2 ring-white"
+                      aria-label={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
+                      title={`${formatCount(notificationCount)} yêu cầu đặt hàng mới`}
+                    >
+                      {notificationCount > 9 ? "9+" : notificationCount}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
             </div>
             <p className="mt-3 line-clamp-2 text-[11px] font-medium leading-4 text-slate-400">{note}</p>
           </article>

@@ -16,6 +16,7 @@ export interface SellerNavigationItem {
   href: string;
   icon: LucideIcon;
   available: boolean;
+  notificationKey?: "recentInstantOrders" | "activePreOrders" | "activeDisputes";
 }
 
 export const sellerNavigation: SellerNavigationItem[] = [
@@ -42,18 +43,21 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/orders/instant",
     icon: PackageCheck,
     available: true,
+    notificationKey: "recentInstantOrders",
   },
   {
     label: "Đơn đặt hàng",
     href: "/seller/orders/pre-orders",
     icon: Clock3,
     available: true,
+    notificationKey: "activePreOrders",
   },
   {
     label: "Khiếu nại",
     href: "/seller/disputes",
     icon: ShieldAlert,
     available: true,
+    notificationKey: "activeDisputes",
   },
   {
     label: "Ví & tài chính",

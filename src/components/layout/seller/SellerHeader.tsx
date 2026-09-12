@@ -1,13 +1,23 @@
 "use client";
 
 import { Bell, Menu, Store, X } from "lucide-react";
+import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
+import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
 
 import { SellerNavigation } from "./SellerSidebar";
 
 export function SellerHeader() {
+  const { data: notifications } = useSellerNotifications();
+  const notificationCount = notifications
+    ? notifications.recentInstantOrderCount
+      + notifications.newPreOrderRequestCount
+      + notifications.processingPreOrderCount
+      + notifications.activeDisputeCount
+    : 0;
+
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -42,15 +52,19 @@ export function SellerHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
+          <Link
+            href="/seller/orders"
             className="relative grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
-            aria-label="Thông báo người bán"
-            title="Thông báo đang dùng dữ liệu minh họa"
+            aria-label={`${notificationCount} hoạt động bán hàng cần theo dõi`}
+            title={`${notificationCount} hoạt động bán hàng cần theo dõi`}
           >
             <Bell className="size-[18px]" />
-            <span className="absolute right-2 top-2 size-2 rounded-full bg-rose-500 ring-2 ring-white" />
-          </button>
+            {notificationCount > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-black leading-5 text-white ring-2 ring-white">
+                {notificationCount > 9 ? "9+" : notificationCount}
+              </span>
+            ) : null}
+          </Link>
           <AuthStatus />
         </div>
       </div>

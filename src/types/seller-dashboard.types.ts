@@ -32,5 +32,8 @@ export interface SellerDashboardData {
 }
 
 export interface SellerNotificationData {
+  recentInstantOrderCount: number;
   newPreOrderRequestCount: number;
+  processingPreOrderCount: number;
+  activeDisputeCount: number;
 }
