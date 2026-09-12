@@ -377,8 +377,15 @@ function FeeHistoryRow({ ledger }: { ledger: SellerFeeLedger }) {
   return (
     <tr className="text-slate-600 transition hover:bg-slate-50/70">
       <td className="px-6 py-4">
-        <Link href={`/seller/orders/${ledger.orderId}`} className="font-black text-violet-700 hover:underline">Đơn #{ledger.orderId}</Link>
-        <p className="mt-1 text-[11px] text-slate-400">Dòng sản phẩm #{ledger.orderItemId}</p>
+        <Link href={`/seller/orders/${ledger.orderId}`} className="break-all font-black text-violet-700 hover:underline">
+          {ledger.orderCode || "Mã đơn chưa cập nhật"}
+        </Link>
+        <p className="mt-1 max-w-64 truncate text-[11px] font-semibold text-slate-600" title={ledger.productName || "Sản phẩm"}>
+          {ledger.productName || "Sản phẩm"}
+        </p>
+        <p className="mt-0.5 max-w-64 truncate text-[11px] text-slate-400" title={ledger.variantName || "Mặc định"}>
+          Biến thể: {ledger.variantName || "Mặc định"}
+        </p>
       </td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{formatDateTime(ledger.feeIncurredAt)}</td>
       <td className="whitespace-nowrap px-4 py-4 text-right font-bold text-slate-800">{formatCurrency(ledger.saleAmount)}</td>

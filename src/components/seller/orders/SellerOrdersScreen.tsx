@@ -363,8 +363,8 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
                       {order.orderCode}
                     </Link>
                     <p className="mt-1 truncate text-xs text-slate-500">Người mua: <span className="font-bold text-slate-700">@{order.buyerUsername || "không xác định"}</span></p>
-                    <p className="mt-1 truncate text-xs text-slate-500" title={order.shopName}>
-                      Gian hàng: <span className="font-bold text-slate-700">{order.shopName || "Chưa cập nhật"}</span>
+                    <p className="mt-1 truncate text-xs text-slate-500" title={order.productNames?.join(", ") || "Sản phẩm"}>
+                      Sản phẩm: <span className="font-bold text-slate-700">{order.productNames?.join(", ") || "Sản phẩm"}</span>
                     </p>
                     <p className="mt-1 truncate text-xs text-slate-500" title={order.variantNames?.join(", ") || "Mặc định"}>
                       Biến thể: <span className="font-bold text-slate-700">{order.variantNames?.join(", ") || "Mặc định"}</span>

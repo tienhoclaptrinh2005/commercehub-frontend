@@ -27,6 +27,9 @@ export interface SellerFeeLedger {
   id: number;
   orderItemId: number;
   orderId: number;
+  orderCode: string | null;
+  productName: string | null;
+  variantName: string | null;
   shopId: number;
   feeRateSnapshot: number;
   saleAmount: number;
