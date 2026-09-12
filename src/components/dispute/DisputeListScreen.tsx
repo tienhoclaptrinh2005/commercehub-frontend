@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, LoaderCircle, RefreshCw, Scale } from "lucide-react";
+import { CircleAlert, Clock3, LoaderCircle, RefreshCw, Scale } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -128,6 +128,12 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><span className="break-all font-black text-slate-900">{dispute.orderCode ? `Đơn hàng ${dispute.orderCode}` : "Mã đơn chưa cập nhật"}</span><DisputeStatusBadge status={dispute.status} /></div>
                   {dispute.status === "RESOLVED" && dispute.resolution ? <p className="mt-1 text-xs font-semibold text-slate-500">Kết quả: {RESOLUTION_LABELS[dispute.resolution]}</p> : null}
+                  {mode === "seller" && dispute.status === "WAITING_BUYER_CONFIRMATION" ? (
+                    <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-2.5 py-2 text-xs font-semibold leading-5 text-sky-800">
+                      <Clock3 className="mt-0.5 size-3.5 shrink-0" />
+                      Đã hoàn tất bảo hành. Nếu buyer không phản hồi trước {new Date(dispute.deadlineAt).toLocaleString("vi-VN")}, khiếu nại sẽ tự đóng và khoản tiền tiếp tục thời gian giữ T+7 còn lại.
+                    </p>
+                  ) : null}
                   <p className="mt-2 line-clamp-2 text-sm text-slate-600">{dispute.reason}</p>
                   <p className="mt-2 text-xs font-semibold text-slate-500">Gian hàng: {dispute.shopName || "Chưa cập nhật"}</p>
                   <p className="mt-1 text-xs text-slate-500">{dispute.productName || "Sản phẩm"} · Biến thể: {dispute.variantName || "Mặc định"}</p>

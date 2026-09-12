@@ -129,6 +129,14 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
             <p>Seller có tối đa <strong>24 giờ kể từ lúc nhận bảo hành</strong> để hoàn tất xử lý. Quá hạn, hệ thống tự động hoàn 100% tiền cho buyer mà không cần Admin phán quyết.</p>
           </div>
         ) : null}
+        {mode === "seller" && dispute.status === "WAITING_BUYER_CONFIRMATION" ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900" role="status">
+            <Clock3 className="mt-0.5 size-4 shrink-0" />
+            <p>
+              <strong>Đã hoàn tất bảo hành.</strong> Nếu buyer không phản hồi trước <strong>{new Date(dispute.deadlineAt).toLocaleString("vi-VN")}</strong>, khiếu nại sẽ tự đóng và khoản tiền tiếp tục thời gian giữ T+7 còn lại.
+            </p>
+          </div>
+        ) : null}
         <div className="mt-6 rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Lý do buyer</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.reason}</p></div>
         {dispute.shopResponse ? <div className="mt-4 rounded-xl bg-sky-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-sky-700">Phản hồi seller</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.shopResponse}</p></div> : null}
         {dispute.resolutionNote ? <div className="mt-4 rounded-xl bg-violet-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-violet-700">Ghi chú phán quyết</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.resolutionNote}</p></div> : null}
