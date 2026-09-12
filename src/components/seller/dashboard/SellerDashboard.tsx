@@ -9,7 +9,6 @@ import {
   Eye,
   PackageCheck,
   RefreshCw,
-  RotateCcw,
   ShoppingBag,
   WalletCards,
 } from "lucide-react";
@@ -24,17 +23,11 @@ import type { SellerOrderStatusCount } from "@/types";
 import { SellerRevenueChart } from "./SellerRevenueChart";
 
 const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Đang khởi tạo",
-  WAITING_APPROVAL: "Chờ shop xác nhận",
-  APPROVED: "Đã xác nhận",
+  WAITING_SELLER_ACCEPTANCE: "Chờ shop nhận đơn",
   PROCESSING: "Đang xử lý",
   DELIVERED: "Đã giao hàng",
-  DISPUTED: "Đang khiếu nại",
-  REFUNDED: "Đã hoàn tiền",
   REJECTED: "Shop từ chối",
   CANCELLED: "Đã hủy",
-  CANCELLED_BY_SELLER: "Shop đã hủy",
-  CANCELLED_BY_SYSTEM: "Hệ thống đã hủy",
 };
 
 function currentBusinessMonth() {
@@ -72,7 +65,7 @@ function statusPresentation(status: string): {
   icon: LucideIcon;
   color: string;
 } {
-  if (["WAITING_APPROVAL", "PENDING", "APPROVED", "PROCESSING"].includes(status)) {
+  if (["WAITING_SELLER_ACCEPTANCE", "PROCESSING"].includes(status)) {
     return {
       label: STATUS_LABELS[status] ?? status,
       icon: Clock3,
@@ -84,20 +77,6 @@ function statusPresentation(status: string): {
       label: STATUS_LABELS[status],
       icon: PackageCheck,
       color: "bg-emerald-50 text-emerald-700",
-    };
-  }
-  if (status === "DISPUTED") {
-    return {
-      label: STATUS_LABELS[status],
-      icon: CircleAlert,
-      color: "bg-orange-50 text-orange-700",
-    };
-  }
-  if (status === "REFUNDED") {
-    return {
-      label: STATUS_LABELS[status],
-      icon: RotateCcw,
-      color: "bg-sky-50 text-sky-700",
     };
   }
   return {

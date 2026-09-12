@@ -22,19 +22,16 @@ import { useOrders } from "@/hooks/api/useOrders";
 import { formatCurrency } from "@/lib/format";
 import type { OrderHistoryCursor } from "@/services/order.service";
 
-import { OrderStatusBadge } from "./OrderStatusBadge";
+import { ActiveDisputeBadge, OrderStatusBadge } from "./OrderStatusBadge";
 
 const ORDER_STATUS_FILTERS = [
   { value: "", label: "Tất cả trạng thái" },
-  { value: "DISPUTED", label: "Đang khiếu nại" },
-  { value: "WAITING_APPROVAL", label: "Chờ shop xác nhận" },
+  { value: "ACTIVE_DISPUTE", label: "Đang khiếu nại" },
+  { value: "WAITING_SELLER_ACCEPTANCE", label: "Chờ shop nhận đơn" },
   { value: "PROCESSING", label: "Đang xử lý" },
   { value: "DELIVERED", label: "Đã giao hàng" },
-  { value: "REFUNDED", label: "Đã hoàn tiền" },
   { value: "REJECTED", label: "Shop từ chối" },
   { value: "CANCELLED", label: "Đã hủy" },
-  { value: "CANCELLED_BY_SELLER", label: "Shop đã hủy" },
-  { value: "CANCELLED_BY_SYSTEM", label: "Hệ thống đã hủy" },
 ] as const;
 
 interface AppliedFilters {
@@ -54,8 +51,7 @@ const EMPTY_FILTERS: AppliedFilters = {
 const PAYMENT_STATUS: Record<string, { label: string; className: string }> = {
   PAID: { label: "Đã thanh toán", className: "text-emerald-700" },
   REFUNDED: { label: "Đã hoàn tiền", className: "text-cyan-700" },
-  PARTIAL_REFUND: { label: "Hoàn tiền một phần", className: "text-amber-700" },
-  UNPAID: { label: "Chưa thanh toán", className: "text-rose-700" },
+  PARTIALLY_REFUNDED: { label: "Hoàn tiền một phần", className: "text-amber-700" },
 };
 
 function formatOrderTime(value: string): string {
@@ -291,7 +287,8 @@ export function OrderHistoryScreen() {
                         <h3 className="text-base font-black text-slate-950">
                           {order.orderCode || `Đơn hàng #${order.id}`}
                         </h3>
-                        <OrderStatusBadge status={order.effectiveStatus || order.status} />
+                        <OrderStatusBadge status={order.status} cancelledBy={order.cancelledBy} />
+                        {order.activeDispute ? <ActiveDisputeBadge /> : null}
                       </div>
                       <p className="mt-2 flex items-center gap-2 text-sm text-slate-500">
                         <CalendarDays className="size-4 shrink-0 text-slate-400" />

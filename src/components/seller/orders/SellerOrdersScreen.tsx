@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { ActiveDisputeBadge, OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useAppModal } from "@/components/ui/app-modal";
 import { useSellerOrders } from "@/hooks/api/useSellerOrders";
 import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
@@ -35,14 +35,12 @@ const PAGE_SIZE = 10;
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
-  { value: "WAITING_APPROVAL", label: "Chờ shop nhận đơn" },
+  { value: "WAITING_SELLER_ACCEPTANCE", label: "Chờ shop nhận đơn" },
   { value: "PROCESSING", label: "Đang thực hiện" },
   { value: "DELIVERED", label: "Đã giao hàng" },
-  { value: "DISPUTED", label: "Đang khiếu nại" },
+  { value: "ACTIVE_DISPUTE", label: "Đang khiếu nại" },
   { value: "REJECTED", label: "Shop đã từ chối" },
-  { value: "CANCELLED", label: "Buyer đã hủy" },
-  { value: "CANCELLED_BY_SELLER", label: "Shop đã hủy" },
-  { value: "CANCELLED_BY_SYSTEM", label: "Hệ thống đã hủy" },
+  { value: "CANCELLED", label: "Đã hủy" },
 ] as const;
 
 interface SellerOrdersScreenProps {
@@ -92,6 +90,12 @@ function formatDateTime(value: string): string {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function paymentStatusLabel(status: OrderSummary["paymentStatus"]): string {
+  if (status === "REFUNDED") return "Đã hoàn tiền";
+  if (status === "PARTIALLY_REFUNDED") return "Hoàn tiền một phần";
+  return "Đã thanh toán";
 }
 
 function deliveryTypeLabel(value: string): string {
@@ -354,7 +358,6 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
         ) : (
           <div className="divide-y divide-slate-100">
             {result.content.map((order) => {
-              const effectiveStatus = order.effectiveStatus || order.status;
               const busy = mutatingOrderId === order.id;
               return (
                 <article key={order.id} className="grid gap-4 px-5 py-4 transition hover:bg-slate-50/70 lg:grid-cols-[minmax(250px,1.4fr)_150px_170px_150px_minmax(250px,1fr)] lg:items-center">
@@ -377,10 +380,11 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
                   <p className="text-sm font-semibold text-slate-700">{formatDateTime(order.placedAt)}</p>
                   <div>
                     <p className="font-black text-slate-950">{formatCurrency(Number(order.totalAmount))}</p>
-                    <p className="mt-0.5 text-xs font-semibold text-emerald-700">{order.paymentStatus === "REFUNDED" ? "Đã hoàn tiền" : "Đã thanh toán"}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-emerald-700">{paymentStatusLabel(order.paymentStatus)}</p>
                   </div>
                   <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-                    <OrderStatusBadge status={effectiveStatus} />
+                    <OrderStatusBadge status={order.status} cancelledBy={order.cancelledBy} />
+                    {order.activeDispute ? <ActiveDisputeBadge /> : null}
                     <Link
                       href={`/seller/orders/${order.id}`}
                       title="Xem chi tiết"
@@ -388,7 +392,7 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
                     >
                       <Eye className="size-4" />
                     </Link>
-                    {order.deliveryType === "PRE_ORDER" && order.status === "WAITING_APPROVAL" ? (
+                    {order.deliveryType === "PRE_ORDER" && order.status === "WAITING_SELLER_ACCEPTANCE" ? (
                       <>
                         <button
                           type="button"

@@ -99,10 +99,10 @@ export const disputeService = {
     return unwrap(response.data, "Không thể tải tranh chấp");
   },
 
-  async resolveAdmin(id: number, decision: "BUYER_WIN" | "SELLER_WIN", adminNote?: string) {
+  async resolveAdmin(id: number, decision: "BUYER_WIN" | "SELLER_WIN", resolutionNote?: string) {
     const response = await api.post<ApiResponse<Dispute>>(`/api/v1/admin/disputes/${id}/resolve`, {
       decision,
-      adminNote,
+      resolutionNote,
     });
     return unwrap(response.data, "Không thể giải quyết tranh chấp");
   },

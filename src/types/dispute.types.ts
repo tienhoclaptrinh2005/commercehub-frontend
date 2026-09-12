@@ -2,15 +2,17 @@ export type DisputeStatus =
   | "OPEN"
   | "WARRANTY_IN_PROGRESS"
   | "WAITING_BUYER_CONFIRMATION"
-  | "PROCESSING"
+  | "ADMIN_REVIEW"
+  | "RESOLVED";
+
+export type DisputeResolution =
   | "BUYER_WIN"
   | "SELLER_WIN"
-  | "CLOSED";
-
-export type DisputeClosedReason =
   | "BUYER_WITHDREW"
-  | "BUYER_ACCEPTED_WARRANTY"
+  | "WARRANTY_ACCEPTED"
   | "BUYER_CONFIRMATION_TIMEOUT";
+
+export type DisputeResolvedBy = "BUYER" | "ADMIN" | "SYSTEM";
 
 export interface Dispute {
   id: number;
@@ -27,9 +29,10 @@ export interface Dispute {
   shopResponse: string | null;
   shopEvidenceUrls: string[];
   status: DisputeStatus;
-  closedReason: DisputeClosedReason | null;
+  resolution: DisputeResolution | null;
+  resolvedBy: DisputeResolvedBy | null;
   refundAmount: number | null;
-  adminNote: string | null;
+  resolutionNote: string | null;
   resolverId: number | null;
   createdAt: string;
   deadlineAt: string;

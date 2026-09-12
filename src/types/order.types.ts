@@ -1,3 +1,19 @@
+export type OrderStatus =
+  | "WAITING_SELLER_ACCEPTANCE"
+  | "PROCESSING"
+  | "DELIVERED"
+  | "REJECTED"
+  | "CANCELLED";
+
+export type OrderPaymentStatus = "PAID" | "PARTIALLY_REFUNDED" | "REFUNDED";
+export type OrderCancelledBy = "BUYER" | "SELLER" | "SYSTEM" | "ADMIN";
+export type OrderCancellationCode =
+  | "BUYER_REQUEST"
+  | "SELLER_CANCELLED"
+  | "SELLER_ACCEPTANCE_TIMEOUT"
+  | "SELLER_PROCESSING_TIMEOUT"
+  | "ADMIN_CANCELLED";
+
 export interface OrderSummary {
   id: number;
   orderCode: string;
@@ -8,9 +24,13 @@ export interface OrderSummary {
   productNames: string[];
   variantNames: string[];
   deliveryType: string;
-  status: string;
-  effectiveStatus: string;
-  paymentStatus: string;
+  status: OrderStatus;
+  paymentStatus: OrderPaymentStatus;
+  cancelledBy: OrderCancelledBy | null;
+  cancellationCode: OrderCancellationCode | null;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
+  activeDispute: boolean;
   totalAmount: number;
   placedAt: string;
 }
@@ -21,7 +41,6 @@ export interface CheckoutOrderReference {
 }
 
 export interface PreOrderItemDetail {
-  status: string;
   buyerInputs: string | null;
   deliveryContentType: string | null;
   deliveryContent: string | null;
@@ -47,8 +66,8 @@ export interface OrderItemDetail {
 
 export interface OrderStatusLog {
   id: number;
-  fromStatus: string | null;
-  toStatus: string;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
   changedBy: number | null;
   note: string | null;
   createdAt: string;

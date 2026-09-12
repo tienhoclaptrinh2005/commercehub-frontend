@@ -20,9 +20,11 @@ type ActionConfirmation = {
   danger?: boolean;
 };
 
-const CLOSED_REASON_LABELS: Record<NonNullable<Dispute["closedReason"]>, string> = {
+const RESOLUTION_LABELS: Record<NonNullable<Dispute["resolution"]>, string> = {
+  BUYER_WIN: "Buyer thắng — đã hoàn tiền",
+  SELLER_WIN: "Seller thắng — tiếp tục thời gian giữ tiền",
   BUYER_WITHDREW: "Buyer tự hủy khiếu nại",
-  BUYER_ACCEPTED_WARRANTY: "Buyer xác nhận bảo hành thành công",
+  WARRANTY_ACCEPTED: "Buyer xác nhận bảo hành thành công",
   BUYER_CONFIRMATION_TIMEOUT: "Buyer không phản hồi trong thời hạn xác nhận",
 };
 
@@ -30,7 +32,7 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
   const modal = useAppModal();
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [response, setResponse] = useState("");
-  const [adminNote, setAdminNote] = useState("");
+  const [resolutionNote, setResolutionNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,11 +114,11 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
           <Info label="Tạo lúc" value={new Date(dispute.createdAt).toLocaleString("vi-VN")} />
           <Info label="Hạn xử lý" value={new Date(dispute.deadlineAt).toLocaleString("vi-VN")} icon />
         </div>
-        {dispute.status === "CLOSED" && dispute.closedReason ? (
+        {dispute.status === "RESOLVED" && dispute.resolution ? (
           <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <InfoIcon className="mt-0.5 size-4 shrink-0 text-slate-500" />
             <div>
-              <p><strong>Nguyên nhân đóng:</strong> {CLOSED_REASON_LABELS[dispute.closedReason]}</p>
+              <p><strong>Kết quả xử lý:</strong> {RESOLUTION_LABELS[dispute.resolution]}</p>
               {mode === "buyer" ? <p className="mt-1 text-xs leading-5 text-slate-500">Nếu sản phẩm tiếp tục phát sinh lỗi, hãy liên hệ shop để được hỗ trợ; nếu shop không hỗ trợ, hãy liên hệ Admin.</p> : null}
             </div>
           </div>
@@ -129,7 +131,7 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
         ) : null}
         <div className="mt-6 rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Lý do buyer</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.reason}</p></div>
         {dispute.shopResponse ? <div className="mt-4 rounded-xl bg-sky-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-sky-700">Phản hồi seller</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.shopResponse}</p></div> : null}
-        {dispute.adminNote ? <div className="mt-4 rounded-xl bg-violet-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-violet-700">Ghi chú admin</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.adminNote}</p></div> : null}
+        {dispute.resolutionNote ? <div className="mt-4 rounded-xl bg-violet-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-violet-700">Ghi chú phán quyết</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{dispute.resolutionNote}</p></div> : null}
         {dispute.refundAmount !== null ? <p className="mt-5 text-sm font-bold text-emerald-700">Số tiền hoàn: {formatCurrency(Number(dispute.refundAmount))}</p> : null}
       </section>
 
@@ -174,10 +176,10 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
         </ActionPanel>
       ) : null}
 
-      {mode === "admin" && dispute.status === "PROCESSING" ? (
+      {mode === "admin" && dispute.status === "ADMIN_REVIEW" ? (
         <ActionPanel title="Phán quyết của admin">
-          <textarea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} maxLength={5000} rows={4} placeholder="Ghi chú phán quyết..." className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
-          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "BUYER_WIN", adminNote), "Đã phán buyer thắng và hoàn 100%", { title: "Xác nhận Buyer thắng", description: "Hệ thống sẽ hoàn 100% tiền của sản phẩm khiếu nại cho buyer và hủy phí liên quan.", confirmLabel: "Hoàn tiền cho Buyer" })}>Buyer thắng</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "SELLER_WIN", adminNote), "Đã phán seller thắng; T+7 tiếp tục", { title: "Xác nhận Seller thắng", description: "Khoản giữ tiền sẽ quay lại luồng T+7 và tiếp tục chờ quyết toán cho seller.", confirmLabel: "Xác nhận Seller thắng", danger: true })}>Seller thắng</ActionButton></div>
+          <textarea value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} maxLength={5000} rows={4} placeholder="Ghi chú phán quyết..." className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
+          <div className="mt-3 flex flex-wrap gap-2"><ActionButton disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "BUYER_WIN", resolutionNote), "Đã phán buyer thắng và hoàn 100%", { title: "Xác nhận Buyer thắng", description: "Hệ thống sẽ hoàn 100% tiền của sản phẩm khiếu nại cho buyer và hủy phí liên quan.", confirmLabel: "Hoàn tiền cho Buyer" })}>Buyer thắng</ActionButton><ActionButton danger disabled={submitting} onClick={() => void run(() => disputeService.resolveAdmin(dispute.id, "SELLER_WIN", resolutionNote), "Đã phán seller thắng; T+7 tiếp tục", { title: "Xác nhận Seller thắng", description: "Khoản giữ tiền sẽ quay lại luồng T+7 và tiếp tục chờ quyết toán cho seller.", confirmLabel: "Xác nhận Seller thắng", danger: true })}>Seller thắng</ActionButton></div>
         </ActionPanel>
       ) : null}
     </div>

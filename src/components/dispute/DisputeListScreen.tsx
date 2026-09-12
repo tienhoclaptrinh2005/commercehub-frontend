@@ -13,9 +13,11 @@ import { DisputeStatusBadge } from "./DisputeStatusBadge";
 
 type Mode = "buyer" | "seller" | "admin";
 
-const CLOSED_REASON_LABELS: Record<NonNullable<Dispute["closedReason"]>, string> = {
+const RESOLUTION_LABELS: Record<NonNullable<Dispute["resolution"]>, string> = {
+  BUYER_WIN: "Buyer thắng",
+  SELLER_WIN: "Seller thắng",
   BUYER_WITHDREW: "Buyer tự hủy",
-  BUYER_ACCEPTED_WARRANTY: "Buyer đã đồng ý bảo hành",
+  WARRANTY_ACCEPTED: "Buyer đã đồng ý bảo hành",
   BUYER_CONFIRMATION_TIMEOUT: "Buyer quá hạn xác nhận",
 };
 
@@ -101,9 +103,8 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
               aria-label="Lọc trạng thái tranh chấp"
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="PROCESSING">Chờ admin xử lý</option>
-              <option value="BUYER_WIN">Buyer thắng</option>
-              <option value="SELLER_WIN">Seller thắng</option>
+              <option value="ADMIN_REVIEW">Chờ admin xử lý</option>
+              <option value="RESOLVED">Đã giải quyết</option>
             </select>
           ) : null}
           <button type="button" onClick={() => void load()} className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" aria-label="Tải lại">
@@ -126,7 +127,7 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
               <Link key={dispute.id} href={`${baseHref}/${dispute.id}`} className="grid gap-3 px-5 py-5 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><span className="break-all font-black text-slate-900">{dispute.orderCode ? `Đơn hàng ${dispute.orderCode}` : "Mã đơn chưa cập nhật"}</span><DisputeStatusBadge status={dispute.status} /></div>
-                  {dispute.status === "CLOSED" && dispute.closedReason ? <p className="mt-1 text-xs font-semibold text-slate-500">Nguyên nhân đóng: {CLOSED_REASON_LABELS[dispute.closedReason]}</p> : null}
+                  {dispute.status === "RESOLVED" && dispute.resolution ? <p className="mt-1 text-xs font-semibold text-slate-500">Kết quả: {RESOLUTION_LABELS[dispute.resolution]}</p> : null}
                   <p className="mt-2 line-clamp-2 text-sm text-slate-600">{dispute.reason}</p>
                   <p className="mt-2 text-xs font-semibold text-slate-500">Gian hàng: {dispute.shopName || "Chưa cập nhật"}</p>
                   <p className="mt-1 text-xs text-slate-500">{dispute.productName || "Sản phẩm"} · Biến thể: {dispute.variantName || "Mặc định"}</p>

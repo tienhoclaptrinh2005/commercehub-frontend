@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { ActiveDisputeBadge, cancellationCodeLabel, OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useAppModal } from "@/components/ui/app-modal";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
@@ -59,7 +59,7 @@ function formatDateTime(value: string | null | undefined): string {
 
 function paymentStatusLabel(status: string): string {
   if (status === "REFUNDED") return "Đã hoàn tiền";
-  if (status === "PARTIAL_REFUND") return "Hoàn tiền một phần";
+  if (status === "PARTIALLY_REFUNDED") return "Hoàn tiền một phần";
   if (status === "PAID") return "Đã thanh toán";
   return "Chưa thanh toán";
 }
@@ -290,8 +290,7 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
     );
   }
 
-  const effectiveStatus = order.effectiveStatus || order.status;
-  const deadline = order.status === "WAITING_APPROVAL"
+  const deadline = order.status === "WAITING_SELLER_ACCEPTANCE"
     ? order.approvalDeadlineAt
     : order.status === "PROCESSING"
       ? order.processingDeadlineAt
@@ -316,7 +315,10 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
             <h1 className="mt-2 break-all text-xl font-black text-slate-950 sm:text-2xl">{order.orderCode}</h1>
             <p className="mt-2 text-sm text-slate-500">Đặt lúc {formatDateTime(order.placedAt)}</p>
           </div>
-          <OrderStatusBadge status={effectiveStatus} />
+          <div className="flex flex-wrap gap-2">
+            <OrderStatusBadge status={order.status} cancelledBy={order.cancelledBy} />
+            {order.activeDispute ? <ActiveDisputeBadge /> : null}
+          </div>
         </div>
 
         <dl className="mt-5 grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -351,7 +353,16 @@ export function SellerOrderDetailScreen({ orderId }: SellerOrderDetailScreenProp
           </div>
         ) : null}
 
-        {order.deliveryType === "PRE_ORDER" && order.status === "WAITING_APPROVAL" ? (
+        {order.status === "CANCELLED" ? (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-700">
+            <p className="font-black">Thông tin hủy đơn</p>
+            <p className="mt-1"><span className="font-bold">Loại:</span> {cancellationCodeLabel(order.cancellationCode)}</p>
+            <p className="mt-1"><span className="font-bold">Thời gian:</span> {formatDateTime(order.cancelledAt)}</p>
+            <p className="mt-1"><span className="font-bold">Lý do:</span> {order.cancellationReason || "Không có ghi chú thêm."}</p>
+          </div>
+        ) : null}
+
+        {order.deliveryType === "PRE_ORDER" && order.status === "WAITING_SELLER_ACCEPTANCE" ? (
           <div className="mt-5 flex flex-wrap gap-2">
             <button type="button" onClick={() => void updateOrder("accept")} disabled={isLoading || isMutating || deadlineExpired} className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
               {isMutating ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Nhận đơn

@@ -20,7 +20,7 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { ActiveDisputeBadge, cancellationCodeLabel, OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useOrder } from "@/hooks/api/useOrder";
 import { formatCurrency } from "@/lib/format";
 
@@ -36,16 +36,20 @@ function formatDateTime(value: string): string {
 
 function readableStatus(status: string): string {
   const labels: Record<string, string> = {
-    WAITING_APPROVAL: "Chờ shop xác nhận",
+    WAITING_SELLER_ACCEPTANCE: "Chờ shop nhận đơn",
     PROCESSING: "Đang xử lý",
     DELIVERED: "Đã giao hàng",
     REJECTED: "Shop từ chối",
-    REFUNDED: "Đã hoàn tiền",
     CANCELLED: "Đã hủy",
-    CANCELLED_BY_SELLER: "Shop đã hủy",
-    CANCELLED_BY_SYSTEM: "Hệ thống đã hủy",
   };
   return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function paymentStatusLabel(status: string): string {
+  if (status === "PAID") return "Đã thanh toán";
+  if (status === "PARTIALLY_REFUNDED") return "Hoàn tiền một phần";
+  if (status === "REFUNDED") return "Đã hoàn tiền";
+  return status.replaceAll("_", " ");
 }
 
 export function OrderDetailScreen({ orderCode }: { orderCode: string }) {
@@ -157,7 +161,8 @@ export function OrderDetailScreen({ orderCode }: { orderCode: string }) {
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-2xl font-black tracking-tight text-slate-950">{order.orderCode}</h1>
-              <OrderStatusBadge status={order.effectiveStatus || order.status} />
+              <OrderStatusBadge status={order.status} cancelledBy={order.cancelledBy} />
+              {order.activeDispute ? <ActiveDisputeBadge /> : null}
             </div>
             <p className="mt-2 text-sm text-slate-500">Đặt lúc {formatDateTime(order.placedAt)}</p>
           </div>
@@ -201,13 +206,30 @@ export function OrderDetailScreen({ orderCode }: { orderCode: string }) {
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
             <WalletCards className="size-5 text-violet-600" />
-            <div><p className="text-xs text-slate-400">Thanh toán</p><p className="mt-0.5 font-bold text-slate-800">{order.paymentStatus === "PAID" ? "Đã thanh toán" : readableStatus(order.paymentStatus)}</p></div>
+            <div><p className="text-xs text-slate-400">Thanh toán</p><p className="mt-0.5 font-bold text-slate-800">{paymentStatusLabel(order.paymentStatus)}</p></div>
           </div>
           <div className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-xs text-slate-400">Tổng tiền</p>
             <p className="mt-1 text-lg font-black text-emerald-700">{formatCurrency(order.totalAmount)}</p>
           </div>
         </div>
+
+        {order.status === "CANCELLED" ? (
+          <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 text-sm sm:px-7">
+            <p className="flex items-center gap-2 font-black text-slate-800">
+              <AlertCircle className="size-4 text-slate-500" /> Thông tin hủy đơn
+            </p>
+            <div className="mt-2 grid gap-1 text-slate-600 sm:grid-cols-2">
+              <p><span className="font-bold">Loại:</span> {cancellationCodeLabel(order.cancellationCode)}</p>
+              <p><span className="font-bold">Thời gian:</span> {formatDateTime(order.cancelledAt ?? order.placedAt)}</p>
+              <p className="sm:col-span-2"><span className="font-bold">Lý do:</span> {order.cancellationReason || "Không có ghi chú thêm."}</p>
+            </div>
+          </div>
+        ) : order.status === "REJECTED" && order.rejectionReason ? (
+          <div className="border-t border-rose-100 bg-rose-50 px-5 py-4 text-sm text-rose-700 sm:px-7">
+            <span className="font-black">Lý do shop từ chối:</span> {order.rejectionReason}
+          </div>
+        ) : null}
       </section>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
