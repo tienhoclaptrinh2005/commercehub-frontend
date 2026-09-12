@@ -5,6 +5,7 @@ export interface OrderSummary {
   shopName: string;
   sellerUsername: string;
   buyerUsername: string;
+  variantNames: string[];
   deliveryType: string;
   status: string;
   effectiveStatus: string;

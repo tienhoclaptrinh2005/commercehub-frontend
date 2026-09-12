@@ -1,31 +1,63 @@
 "use client";
 
-import { ArrowLeft, CircleAlert, Info, LoaderCircle, Scale } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleAlert,
+  Info,
+  LoaderCircle,
+  Scale,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
+import { orderService } from "@/services/order.service";
+import type { OrderDetail } from "@/types";
 
 interface CreateDisputeScreenProps {
   orderCode: string;
   orderItemId: number;
 }
 
-export function CreateDisputeScreen({ orderCode, orderItemId }: CreateDisputeScreenProps) {
+export function CreateDisputeScreen({
+  orderCode,
+  orderItemId,
+}: CreateDisputeScreenProps) {
   const router = useRouter();
   const modal = useAppModal();
   const [reason, setReason] = useState("");
   const [evidenceText, setEvidenceText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orderContext, setOrderContext] = useState<OrderDetail | null>(null);
 
   const normalizedOrderCode = orderCode.trim();
-  const validIds = normalizedOrderCode.length > 0
-    && normalizedOrderCode.length <= 50
-    && Number.isSafeInteger(orderItemId) && orderItemId > 0;
+  const validIds =
+    normalizedOrderCode.length > 0 &&
+    normalizedOrderCode.length <= 50 &&
+    Number.isSafeInteger(orderItemId) &&
+    orderItemId > 0;
+  const selectedItem = orderContext?.items.find((item) => item.id === orderItemId);
+
+  useEffect(() => {
+    if (!validIds) return;
+
+    let cancelled = false;
+    void orderService.getDetail(normalizedOrderCode)
+      .then((order) => {
+        if (!cancelled) setOrderContext(order);
+      })
+      .catch(() => {
+        // Việc tải ngữ cảnh chỉ phục vụ hiển thị; API tạo khiếu nại vẫn kiểm tra quyền sở hữu.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizedOrderCode, orderItemId, validIds]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,12 +87,34 @@ export function CreateDisputeScreen({ orderCode, orderItemId }: CreateDisputeScr
 
     const confirmed = await modal.confirm({
       title: "Xác nhận gửi khiếu nại",
-      description: "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại. Mỗi sản phẩm trong đơn chỉ được khiếu nại một lần.",
+      description:
+        "Sau khi gửi, giao dịch sẽ chuyển vào quy trình xử lý khiếu nại. Mỗi sản phẩm trong đơn chỉ được khiếu nại một lần.",
       details: (
         <dl className="space-y-1.5">
-          <div className="flex justify-between gap-4"><dt className="text-slate-500">Đơn hàng</dt><dd className="break-all text-right font-bold">{normalizedOrderCode}</dd></div>
-          <div className="flex justify-between gap-4"><dt className="text-slate-500">Sản phẩm trong đơn</dt><dd className="font-bold">#{orderItemId}</dd></div>
-          <div className="flex justify-between gap-4"><dt className="text-slate-500">Bằng chứng</dt><dd className="font-bold">{evidenceUrls.length} đường dẫn</dd></div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Đơn hàng</dt>
+            <dd className="break-all text-right font-bold">
+              {normalizedOrderCode}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Gian hàng</dt>
+            <dd className="text-right font-bold">
+              {orderContext?.shopName || "Đang tải..."}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Sản phẩm / biến thể</dt>
+            <dd className="text-right font-bold">
+              {selectedItem
+                ? `${selectedItem.productName} · ${selectedItem.variantName}`
+                : "Đang tải..."}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Bằng chứng</dt>
+            <dd className="font-bold">{evidenceUrls.length} đường dẫn</dd>
+          </div>
         </dl>
       ),
       confirmLabel: "Gửi khiếu nại",
@@ -70,21 +124,34 @@ export function CreateDisputeScreen({ orderCode, orderItemId }: CreateDisputeScr
     setSubmitting(true);
     setError(null);
     try {
-      const dispute = await disputeService.create(normalizedOrderCode, orderItemId, {
-        reason: trimmedReason,
-        evidenceUrls,
-      });
+      const dispute = await disputeService.create(
+        normalizedOrderCode,
+        orderItemId,
+        {
+          reason: trimmedReason,
+          evidenceUrls,
+        },
+      );
       modal.showSuccess({
         title: "Gửi khiếu nại thành công",
-        description: "Khiếu nại đã được ghi nhận và đang chờ seller phản hồi theo thời hạn quy định.",
-        details: <p className="text-center">Mã khiếu nại: <strong className="text-slate-950">#{dispute.id}</strong></p>,
+        description:
+          "Khiếu nại đã được ghi nhận và đang chờ seller phản hồi theo thời hạn quy định.",
+        details: (
+          <p className="text-center">
+            Đơn hàng:{" "}
+            <strong className="text-slate-950">{dispute.orderCode || normalizedOrderCode}</strong>
+          </p>
+        ),
         confirmLabel: "Xem khiếu nại",
       });
       router.replace(`/disputes/${dispute.id}`);
     } catch (requestError) {
       modal.showError({
         title: "Không thể gửi khiếu nại",
-        description: getApiErrorMessage(requestError, "Không thể tạo khiếu nại"),
+        description: getApiErrorMessage(
+          requestError,
+          "Không thể tạo khiếu nại",
+        ),
         confirmLabel: "Đã hiểu",
       });
     } finally {
@@ -94,36 +161,107 @@ export function CreateDisputeScreen({ orderCode, orderItemId }: CreateDisputeScr
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-6 lg:p-8">
-      <Link href={`/orders/${encodeURIComponent(normalizedOrderCode)}`} className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700">
-        <ArrowLeft className="size-4" />Quay lại đơn hàng
+      <Link
+        href={`/orders/${encodeURIComponent(normalizedOrderCode)}`}
+        className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-violet-700"
+      >
+        <ArrowLeft className="size-4" />
+        Quay lại đơn hàng
       </Link>
 
-      <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <form
+        onSubmit={submit}
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+      >
         <div className="flex items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700"><Scale className="size-5" /></span>
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700">
+            <Scale className="size-5" />
+          </span>
           <div>
-            <p className="break-all text-xs font-bold uppercase tracking-widest text-violet-700">Đơn {normalizedOrderCode} · Item #{orderItemId}</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-950">Tạo khiếu nại</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Chỉ đơn đang giữ tiền và còn thời hạn T+7 mới có thể khiếu nại.</p>
+            <p className="break-all text-xs font-bold uppercase tracking-widest text-violet-700">
+              Đơn hàng {normalizedOrderCode}
+            </p>
+            <h1 className="mt-1 text-2xl font-black text-slate-950">
+              Tạo khiếu nại
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Chỉ đơn đang giữ tiền và còn thời hạn T+7 mới có thể khiếu nại.
+            </p>
           </div>
         </div>
 
-        {!validIds ? <div className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert"><CircleAlert className="size-5 shrink-0" />Đường dẫn không chứa mã đơn hàng hợp lệ.</div> : null}
-        {error ? <div className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert"><CircleAlert className="size-5 shrink-0" />{error}</div> : null}
+        {!validIds ? (
+          <div
+            className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+            role="alert"
+          >
+            <CircleAlert className="size-5 shrink-0" />
+            Đường dẫn không chứa mã đơn hàng hợp lệ.
+          </div>
+        ) : null}
+        {error ? (
+          <div
+            className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+            role="alert"
+          >
+            <CircleAlert className="size-5 shrink-0" />
+            {error}
+          </div>
+        ) : null}
 
-        <div className="mt-5 flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs leading-5 text-amber-900" role="note">
+        <div
+          className="mt-5 flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs leading-5 text-amber-900"
+          role="note"
+        >
           <Info className="mt-0.5 size-4 shrink-0" />
-          <p><strong>Lưu ý:</strong> Trong thời gian giữ tiền T+7, mỗi sản phẩm trong đơn chỉ được khiếu nại một lần. Nếu lỗi phát sinh lại sau khi khiếu nại đã đóng, hãy liên hệ shop; nếu shop không hỗ trợ, hãy liên hệ Admin.</p>
+          <p>
+            <strong>Lưu ý:</strong> Trong thời gian giữ tiền T+7, mỗi sản phẩm
+            trong đơn chỉ được khiếu nại một lần. Nếu lỗi phát sinh lại sau khi
+            khiếu nại đã đóng, hãy liên hệ shop; nếu shop không hỗ trợ, hãy liên
+            hệ Admin.
+          </p>
         </div>
 
-        <label className="mt-6 block text-sm font-bold text-slate-800" htmlFor="dispute-reason">Lý do khiếu nại <span className="text-rose-600">*</span></label>
-        <textarea id="dispute-reason" required maxLength={5000} rows={7} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Mô tả vấn đề và kết quả bạn mong muốn..." className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
-        <p className="mt-1 text-right text-xs text-slate-400">{reason.length}/5000</p>
+        <label
+          className="mt-6 block text-sm font-bold text-slate-800"
+          htmlFor="dispute-reason"
+        >
+          Lý do khiếu nại <span className="text-rose-600">*</span>
+        </label>
+        <textarea
+          id="dispute-reason"
+          required
+          maxLength={5000}
+          rows={7}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Mô tả vấn đề và kết quả bạn mong muốn..."
+          className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500"
+        />
+        <p className="mt-1 text-right text-xs text-slate-400">
+          {reason.length}/5000
+        </p>
 
-        <label className="mt-4 block text-sm font-bold text-slate-800" htmlFor="dispute-evidence">Đường dẫn bằng chứng</label>
-        <textarea id="dispute-evidence" rows={4} value={evidenceText} onChange={(event) => setEvidenceText(event.target.value)} placeholder="Mỗi dòng một URL ảnh hoặc tài liệu, tối đa 10 URL" className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500" />
+        <label
+          className="mt-4 block text-sm font-bold text-slate-800"
+          htmlFor="dispute-evidence"
+        >
+          Đường dẫn bằng chứng ( Không bắt buộc )
+        </label>
+        <textarea
+          id="dispute-evidence"
+          rows={4}
+          value={evidenceText}
+          onChange={(event) => setEvidenceText(event.target.value)}
+          placeholder="Mỗi dòng một URL ảnh hoặc tài liệu, tối đa 10 URL"
+          className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500"
+        />
 
-        <button type="submit" disabled={submitting || !validIds} className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={submitting || !validIds}
+          className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
           {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
           {submitting ? "Đang gửi..." : "Gửi khiếu nại"}
         </button>

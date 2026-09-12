@@ -6,6 +6,8 @@ import type {
 
 import { api } from "./api";
 
+export type SellerNotificationCategory = "INSTANT_ORDERS" | "PRE_ORDERS" | "DISPUTES";
+
 export const sellerDashboardService = {
   async getDashboard(month: string): Promise<SellerDashboardData> {
     const response = await api.get<ApiResponse<SellerDashboardData>>(
@@ -27,6 +29,18 @@ export const sellerDashboardService = {
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || "Không nhận được thông báo bán hàng");
+    }
+
+    return response.data.data;
+  },
+
+  async markNotificationsRead(category: SellerNotificationCategory): Promise<SellerNotificationData> {
+    const response = await api.post<ApiResponse<SellerNotificationData>>(
+      `/api/v1/seller/dashboard/notifications/${category}/read`,
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || "Không thể đánh dấu thông báo đã xem");
     }
 
     return response.data.data;

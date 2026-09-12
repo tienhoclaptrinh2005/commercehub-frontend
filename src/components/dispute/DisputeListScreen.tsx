@@ -2,10 +2,11 @@
 
 import { CircleAlert, LoaderCircle, RefreshCw, Scale } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
+import { useOptionalSellerNotifications } from "@/hooks/api/useSellerNotifications";
 import type { Dispute, PageResponse } from "@/types";
 
 import { DisputeStatusBadge } from "./DisputeStatusBadge";
@@ -28,6 +29,8 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
   const [result, setResult] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sellerNotifications = useOptionalSellerNotifications();
+  const markedNotificationRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,6 +64,23 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [mode, page, status]);
+
+  useEffect(() => {
+    if (
+      mode !== "seller"
+      || markedNotificationRef.current
+      || loading
+      || error
+      || !sellerNotifications
+    ) return;
+
+    markedNotificationRef.current = true;
+    void sellerNotifications.markRead("DISPUTES")
+      .catch(() => {
+        markedNotificationRef.current = false;
+        /* Không chặn danh sách khi chỉ cập nhật mốc đã xem thất bại. */
+      });
+  }, [error, loading, mode, sellerNotifications]);
 
   const baseHref = mode === "seller" ? "/seller/disputes" : mode === "admin" ? "/admin/disputes" : "/disputes";
 
@@ -105,10 +125,12 @@ export function DisputeListScreen({ mode }: { mode: Mode }) {
             {result.data.map((dispute) => (
               <Link key={dispute.id} href={`${baseHref}/${dispute.id}`} className="grid gap-3 px-5 py-5 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2"><span className="font-black text-slate-900">Khiếu nại #{dispute.id}</span><DisputeStatusBadge status={dispute.status} /></div>
+                  <div className="flex flex-wrap items-center gap-2"><span className="break-all font-black text-slate-900">{dispute.orderCode ? `Đơn hàng ${dispute.orderCode}` : "Mã đơn chưa cập nhật"}</span><DisputeStatusBadge status={dispute.status} /></div>
                   {dispute.status === "CLOSED" && dispute.closedReason ? <p className="mt-1 text-xs font-semibold text-slate-500">Nguyên nhân đóng: {CLOSED_REASON_LABELS[dispute.closedReason]}</p> : null}
                   <p className="mt-2 line-clamp-2 text-sm text-slate-600">{dispute.reason}</p>
-                  <p className="mt-2 text-xs text-slate-400">Đơn #{dispute.orderId} · Item #{dispute.orderItemId} · {new Date(dispute.createdAt).toLocaleString("vi-VN")}</p>
+                  <p className="mt-2 text-xs font-semibold text-slate-500">Gian hàng: {dispute.shopName || "Chưa cập nhật"}</p>
+                  <p className="mt-1 text-xs text-slate-500">{dispute.productName || "Sản phẩm"} · Biến thể: {dispute.variantName || "Mặc định"}</p>
+                  <p className="mt-1 text-xs text-slate-400">{new Date(dispute.createdAt).toLocaleString("vi-VN")}</p>
                 </div>
                 <span className="text-sm font-bold text-violet-700">Xem chi tiết →</span>
               </Link>

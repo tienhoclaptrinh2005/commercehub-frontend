@@ -319,6 +319,12 @@ export function OrderHistoryScreen() {
                         >
                           {order.shopName}
                         </Link>
+                        <p
+                          className="mt-1 truncate text-xs font-semibold text-slate-500"
+                          title={order.variantNames?.join(", ") || "Mặc định"}
+                        >
+                          Biến thể: {order.variantNames?.join(", ") || "Mặc định"}
+                        </p>
                       </div>
                     </div>
 

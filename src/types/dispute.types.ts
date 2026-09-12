@@ -18,6 +18,10 @@ export interface Dispute {
   orderItemId: number;
   userId: number;
   shopId: number;
+  orderCode: string;
+  shopName: string;
+  productName: string;
+  variantName: string;
   reason: string;
   evidenceUrls: string[];
   shopResponse: string | null;

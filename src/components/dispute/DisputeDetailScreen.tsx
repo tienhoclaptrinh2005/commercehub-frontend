@@ -63,7 +63,7 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
   ) {
     const confirmed = await modal.confirm({
       ...confirmation,
-      details: <p className="text-center">Khiếu nại <strong className="text-slate-950">#{id}</strong></p>,
+      details: <p className="text-center">Đơn hàng <strong className="text-slate-950">{dispute?.orderCode || "Chưa cập nhật mã đơn"}</strong></p>,
       cancelLabel: "Hủy",
     });
     if (!confirmed) return;
@@ -103,11 +103,12 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div><p className="text-xs font-bold uppercase tracking-widest text-violet-700">Tranh chấp #{dispute.id}</p><h1 className="mt-2 text-2xl font-black text-slate-950">Đơn hàng #{dispute.orderId}</h1></div>
+          <div><p className="text-xs font-bold uppercase tracking-widest text-violet-700">Khiếu nại đơn hàng</p><h1 className="mt-2 break-all text-2xl font-black text-slate-950">{dispute.orderCode || "Mã đơn chưa cập nhật"}</h1></div>
           <DisputeStatusBadge status={dispute.status} />
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Info label="Order item" value={`#${dispute.orderItemId}`} />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Info label="Gian hàng" value={dispute.shopName || "Chưa cập nhật"} />
+          <Info label="Sản phẩm / biến thể" value={`${dispute.productName || "Sản phẩm"} · ${dispute.variantName || "Mặc định"}`} />
           <Info label="Tạo lúc" value={new Date(dispute.createdAt).toLocaleString("vi-VN")} />
           <Info label="Hạn xử lý" value={new Date(dispute.deadlineAt).toLocaleString("vi-VN")} icon />
         </div>

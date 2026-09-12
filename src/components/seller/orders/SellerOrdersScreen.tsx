@@ -15,11 +15,12 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useAppModal } from "@/components/ui/app-modal";
 import { useSellerOrders } from "@/hooks/api/useSellerOrders";
+import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import {
@@ -140,6 +141,29 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
     deliveryType,
   }), [applied, deliveryType]);
   const { result, error, isLoading, refresh } = useSellerOrders(cursor, PAGE_SIZE, filters);
+  const { markRead } = useSellerNotifications();
+  const markedNotificationRef = useRef(false);
+
+  useEffect(() => {
+    if (markedNotificationRef.current || isLoading || error) return;
+
+    const categories = deliveryType === "INSTANT"
+      ? (["INSTANT_ORDERS"] as const)
+      : deliveryType === "PRE_ORDER"
+        ? (["PRE_ORDERS"] as const)
+        : (["INSTANT_ORDERS", "PRE_ORDERS"] as const);
+
+    markedNotificationRef.current = true;
+    void (async () => {
+      for (const category of categories) {
+        await markRead(category);
+      }
+    })()
+      .catch(() => {
+        markedNotificationRef.current = false;
+        /* Polling sẽ thử tải lại; không chặn màn hình đơn hàng. */
+      });
+  }, [deliveryType, error, isLoading, markRead]);
 
   function submitFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -339,6 +363,12 @@ export function SellerOrdersScreen({ deliveryType }: SellerOrdersScreenProps) {
                       {order.orderCode}
                     </Link>
                     <p className="mt-1 truncate text-xs text-slate-500">Người mua: <span className="font-bold text-slate-700">@{order.buyerUsername || "không xác định"}</span></p>
+                    <p className="mt-1 truncate text-xs text-slate-500" title={order.shopName}>
+                      Gian hàng: <span className="font-bold text-slate-700">{order.shopName || "Chưa cập nhật"}</span>
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-500" title={order.variantNames?.join(", ") || "Mặc định"}>
+                      Biến thể: <span className="font-bold text-slate-700">{order.variantNames?.join(", ") || "Mặc định"}</span>
+                    </p>
                   </div>
                   <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${order.deliveryType === "PRE_ORDER" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                     {order.deliveryType === "PRE_ORDER" ? <Clock3 className="size-3.5" /> : <Check className="size-3.5" />}
