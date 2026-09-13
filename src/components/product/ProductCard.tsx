@@ -83,6 +83,25 @@ function getSellerInitial(shopName: string): string {
   return shopName.trim().charAt(0).toUpperCase() || "S";
 }
 
+function SellerAvatar({ avatarUrl, shopName }: { avatarUrl: string | null; shopName: string }) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+
+  if (!avatarUrl || failedAvatarUrl === avatarUrl) {
+    return getSellerInitial(shopName || "Shop");
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={avatarUrl}
+      alt={`Ảnh đại diện ${shopName || "gian hàng"}`}
+      className="size-full object-cover"
+      referrerPolicy="no-referrer"
+      onError={() => setFailedAvatarUrl(avatarUrl)}
+    />
+  );
+}
+
 function formatAverageRating(value: number | null | undefined): string {
   const rating = Number(value ?? 5);
   if (!Number.isFinite(rating)) return "5.0";
@@ -150,16 +169,10 @@ export function ProductCard({
           <div className="mt-2.5 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
             <span className="text-[10px] uppercase">Người bán:</span>
             <span className="grid size-5 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[8px] font-bold text-white">
-              {product.sellerAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.sellerAvatarUrl}
-                  alt={`Ảnh đại diện ${product.shopName || "gian hàng"}`}
-                  className="size-full object-cover"
-                />
-              ) : (
-                getSellerInitial(product.shopName || "Shop")
-              )}
+              <SellerAvatar
+                avatarUrl={product.sellerAvatarUrl}
+                shopName={product.shopName || "Shop"}
+              />
             </span>
             {sellerProfileHref ? (
               <Link
@@ -277,16 +290,10 @@ export function ProductCard({
         <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-slate-500">
           <span className="shrink-0">Người bán:</span>
           <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-bold text-white">
-            {product.sellerAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.sellerAvatarUrl}
-                alt={`Ảnh đại diện ${product.shopName || "gian hàng"}`}
-                className="size-full object-cover"
-              />
-            ) : (
-              getSellerInitial(product.shopName || "Shop")
-            )}
+            <SellerAvatar
+              avatarUrl={product.sellerAvatarUrl}
+              shopName={product.shopName || "Shop"}
+            />
           </span>
           {sellerProfileHref ? (
             <Link

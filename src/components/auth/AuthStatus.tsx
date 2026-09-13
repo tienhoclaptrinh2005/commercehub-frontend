@@ -53,11 +53,13 @@ function AccountAvatar({
   fullName: string;
   className: string;
 }) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+
   return (
     <span
       className={`relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-100 text-emerald-700 ${className}`}
     >
-      {avatarUrl ? (
+      {avatarUrl && failedImageUrl !== avatarUrl ? (
         <Image
           src={avatarUrl}
           alt={`Ảnh đại diện của ${fullName}`}
@@ -65,6 +67,8 @@ function AccountAvatar({
           sizes="80px"
           className="object-cover"
           unoptimized
+          referrerPolicy="no-referrer"
+          onError={() => setFailedImageUrl(avatarUrl)}
         />
       ) : (
         <UserRound className="size-1/2" />

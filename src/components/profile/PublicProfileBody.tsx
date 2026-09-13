@@ -12,6 +12,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { ProductCard } from "@/components/product/ProductCard";
 import { formatDate } from "@/lib/format";
@@ -56,6 +57,7 @@ function getInitials(name: string): string {
 }
 
 export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const activeProducts = (profile.products ?? []).filter((product) => product.status === "ACTIVE");
 
   return (
@@ -72,9 +74,15 @@ export function PublicProfileBody({ profile }: PublicProfileBodyProps) {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
           <div className="grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-9">
             <div className="relative aspect-square overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-500 shadow-sm">
-              {profile.avatarUrl ? (
+              {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt={`Ảnh đại diện ${profile.name}`} className="size-full object-cover" />
+                <img
+                  src={profile.avatarUrl}
+                  alt={`Ảnh đại diện ${profile.name}`}
+                  className="size-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={() => setFailedAvatarUrl(profile.avatarUrl)}
+                />
               ) : (
                 <div className="grid size-full place-items-center bg-gradient-to-br from-emerald-400 to-emerald-700 p-5 text-center text-4xl font-bold tracking-[-0.04em] text-white">
                   {getInitials(profile.name)}

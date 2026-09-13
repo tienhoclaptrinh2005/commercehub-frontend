@@ -264,6 +264,7 @@ export function ShopDirectoryScreen() {
 }
 
 function ShopCard({ shop }: { shop: PublicShopSummary }) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const profileHref = `/users/${encodeURIComponent(shop.ownerUsername)}`;
   const coverClass = coverClasses[Math.abs(shop.id) % coverClasses.length];
 
@@ -294,12 +295,14 @@ function ShopCard({ shop }: { shop: PublicShopSummary }) {
           className="absolute -top-7 left-4 grid size-16 place-items-center overflow-hidden rounded-2xl border-4 border-white bg-emerald-600 text-xl font-black text-white shadow-md"
           aria-label={`Xem gian hàng ${shop.name}`}
         >
-          {shop.shopAvatarUrl ? (
+          {shop.shopAvatarUrl && failedAvatarUrl !== shop.shopAvatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={shop.shopAvatarUrl}
               alt={`Ảnh đại diện ${shop.name}`}
               className="size-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => setFailedAvatarUrl(shop.shopAvatarUrl)}
             />
           ) : (
             shopInitial(shop.name)

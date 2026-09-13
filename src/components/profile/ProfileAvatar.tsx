@@ -28,6 +28,7 @@ export function ProfileAvatar({ avatarUrl, fullName, className }: ProfileAvatarP
           sizes="128px"
           className="object-cover"
           unoptimized
+          referrerPolicy="no-referrer"
           onError={() => setFailedImageUrl(avatarUrl)}
         />
       ) : (

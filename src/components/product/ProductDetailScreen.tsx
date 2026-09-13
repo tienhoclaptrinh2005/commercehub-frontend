@@ -496,14 +496,18 @@ function ShopAvatar({
   name: string;
   avatarUrl: string | null;
 }) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+
   return (
     <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-bold text-white">
-      {avatarUrl ? (
+      {avatarUrl && failedAvatarUrl !== avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={avatarUrl}
           alt={`Ảnh đại diện ${name || "gian hàng"}`}
           className="size-full object-cover"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedAvatarUrl(avatarUrl)}
         />
       ) : (
         name?.trim().charAt(0).toUpperCase() || "S"
