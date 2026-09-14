@@ -6,7 +6,7 @@ import type {
 
 import { api } from "./api";
 
-export type SellerNotificationCategory = "INSTANT_ORDERS" | "PRE_ORDERS" | "DISPUTES";
+export type SellerNotificationCategory = "INSTANT_ORDERS" | "PRE_ORDERS" | "DISPUTES" | "WITHDRAWALS";
 
 export const sellerDashboardService = {
   async getDashboard(month: string): Promise<SellerDashboardData> {

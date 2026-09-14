@@ -8,6 +8,7 @@ import type {
   WalletSummary,
   WalletTransaction,
   WalletTransactionCategory,
+  WithdrawalHistoryItem,
   WithdrawalRequest,
 } from "@/types";
 
@@ -126,16 +127,19 @@ export const walletService = {
     return unwrapData(response.data, "Không nhận được trạng thái nạp tiền");
   },
 
-  async requestWithdrawal(payload: WithdrawalRequest): Promise<string> {
-    const response = await api.post<ApiResponse<null>>(
-      "/api/v1/wallet/withdraw",
+  async requestWithdrawal(payload: WithdrawalRequest): Promise<WithdrawalHistoryItem> {
+    const response = await api.post<ApiResponse<WithdrawalHistoryItem>>(
+      "/api/v1/seller/wallet/withdrawals",
       payload,
     );
+    return unwrapData(response.data, "Không thể gửi yêu cầu rút tiền");
+  },
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || "Không thể gửi yêu cầu rút tiền");
-    }
-
-    return response.data.message || "Yêu cầu rút tiền đã được gửi.";
+  async getSellerWithdrawals(page = 0, size = 10): Promise<PageResponse<WithdrawalHistoryItem>> {
+    const response = await api.get<ApiResponse<PageResponse<WithdrawalHistoryItem>>>(
+      "/api/v1/seller/wallet/withdrawals",
+      { params: { page, size } },
+    );
+    return unwrapData(response.data, "Không nhận được lịch sử rút tiền");
   },
 };

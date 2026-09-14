@@ -26,7 +26,7 @@ export const adminService = {
   async deactivateCategory(id:number) { await api.delete(`/api/v1/admin/categories/${id}`); },
   async deposits(params:ListParams & {provider?:string}) { const r=await api.get<ApiResponse<PageResponse<AdminDeposit>>>("/api/v1/admin/deposits",{params}); return unwrap(r.data,"Không thể tải lịch sử nạp tiền"); },
   async withdrawals(params:ListParams) { const r=await api.get<ApiResponse<PageResponse<AdminWithdrawal>>>("/api/v1/admin/withdrawals",{params}); return unwrap(r.data,"Không thể tải yêu cầu rút tiền"); },
-  async decideWithdrawal(id:number,action:"APPROVE"|"REJECT",note?:string) { await api.put(`/api/v1/admin/withdrawals/${id}/decision`,{action,note}); },
+  async decideWithdrawal(id:number,payload:{action:"APPROVE"|"COMPLETE"|"REJECT";note?:string;transferReference?:string}) { await api.put(`/api/v1/admin/withdrawals/${id}/decision`,payload); },
   async transactions(params:Omit<ListParams,"status"> & {type?:string}) { const r=await api.get<ApiResponse<PageResponse<AdminWalletTransaction>>>("/api/v1/admin/wallet-transactions",{params}); return unwrap(r.data,"Không thể tải giao dịch toàn sàn"); },
   async auditLogs(params:Omit<ListParams,"status"> & {action?:string;targetType?:string}) { const r=await api.get<ApiResponse<PageResponse<AdminAuditLog>>>("/api/v1/admin/audit-logs",{params}); return unwrap(r.data,"Không thể tải nhật ký quản trị"); },
   async feeConfigs() { const r=await api.get<ApiResponse<AdminFeeConfig[]>>("/api/v1/admin/fee-configs"); return unwrap(r.data,"Không thể tải cấu hình phí"); },

@@ -1,7 +1,10 @@
 import type {
   ApiResponse,
+  AdminDisputeListParams,
+  AdminDisputeSummary,
   CreateDisputeRequest,
   Dispute,
+  EscalateDisputeRequest,
   PageResponse,
   SellerDisputeResponseRequest,
 } from "@/types";
@@ -41,8 +44,8 @@ export const disputeService = {
     return unwrap(response.data, "Không thể xác nhận bảo hành");
   },
 
-  async rejectWarranty(id: number): Promise<Dispute> {
-    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/disputes/${id}/escalate`);
+  async rejectWarranty(id: number, payload: EscalateDisputeRequest): Promise<Dispute> {
+    const response = await api.post<ApiResponse<Dispute>>(`/api/v1/disputes/${id}/escalate`, payload);
     return unwrap(response.data, "Không thể chuyển khiếu nại đến quản trị viên");
   },
 
@@ -79,7 +82,7 @@ export const disputeService = {
     return unwrap(response.data, "Không thể hoàn thành bảo hành");
   },
 
-  async escalateSeller(dispute: Dispute, payload: SellerDisputeResponseRequest) {
+  async escalateSeller(dispute: Dispute, payload: EscalateDisputeRequest) {
     const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/dispute`,
       payload,
@@ -87,11 +90,23 @@ export const disputeService = {
     return unwrap(response.data, "Không thể chuyển tranh chấp đến quản trị viên");
   },
 
-  async listAdmin(status: string | undefined, page = 0, size = 20): Promise<PageResponse<Dispute>> {
+  async listAdmin(params: AdminDisputeListParams = {}): Promise<PageResponse<Dispute>> {
     const response = await api.get<ApiResponse<PageResponse<Dispute>>>("/api/v1/admin/disputes", {
-      params: { status: status || undefined, page, size, sort: "createdAt,desc" },
+      params: {
+        scope: params.scope ?? "QUEUE",
+        status: params.status,
+        keyword: params.keyword?.trim() || undefined,
+        overdue: params.overdue || undefined,
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+      },
     });
     return unwrap(response.data, "Không thể tải danh sách tranh chấp");
+  },
+
+  async getAdminSummary(): Promise<AdminDisputeSummary> {
+    const response = await api.get<ApiResponse<AdminDisputeSummary>>("/api/v1/admin/disputes/summary");
+    return unwrap(response.data, "Không thể tải thống kê tranh chấp");
   },
 
   async getAdmin(id: number): Promise<Dispute> {
@@ -99,7 +114,7 @@ export const disputeService = {
     return unwrap(response.data, "Không thể tải tranh chấp");
   },
 
-  async resolveAdmin(id: number, decision: "BUYER_WIN" | "SELLER_WIN", resolutionNote?: string) {
+  async resolveAdmin(id: number, decision: "BUYER_WIN" | "SELLER_WIN", resolutionNote: string) {
     const response = await api.post<ApiResponse<Dispute>>(`/api/v1/admin/disputes/${id}/resolve`, {
       decision,
       resolutionNote,

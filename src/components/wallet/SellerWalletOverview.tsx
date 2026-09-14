@@ -43,6 +43,9 @@ function transactionStatus(transactionType: string) {
   if (transactionType === "WITHDRAW_CANCEL") {
     return { label: "Đã hoàn lại", tone: "bg-sky-50 text-sky-700" };
   }
+  if (transactionType === "WITHDRAW_DONE") {
+    return { label: "Đã chuyển tiền", tone: "bg-emerald-50 text-emerald-700" };
+  }
   return { label: "Đã ghi nhận", tone: "bg-emerald-50 text-emerald-700" };
 }
 
@@ -261,6 +264,7 @@ function BalanceCard({
 function TransactionRow({ transaction }: { transaction: WalletTransaction }) {
   const status = transactionStatus(transaction.transactionType);
   const isPositive = transaction.amount > 0;
+  const isStatusEvent = transaction.transactionType === "WITHDRAW_DONE";
   const typeLabel = TRANSACTION_LABELS[transaction.transactionType] || transaction.transactionType;
 
   return (
@@ -274,10 +278,10 @@ function TransactionRow({ transaction }: { transaction: WalletTransaction }) {
       <td className="px-4 py-4 font-semibold text-slate-700">{typeLabel}</td>
       <td
         className={`whitespace-nowrap px-4 py-4 text-right font-bold ${
-          isPositive ? "text-emerald-700" : "text-rose-600"
+          isStatusEvent ? "text-slate-500" : isPositive ? "text-emerald-700" : "text-rose-600"
         }`}
       >
-        {isPositive ? "+" : ""}{formatCurrency(transaction.amount)}
+        {isStatusEvent ? "Không đổi số dư" : <>{isPositive ? "+" : ""}{formatCurrency(transaction.amount)}</>}
       </td>
       <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-slate-800">
         {formatCurrency(transaction.balanceAfter)}

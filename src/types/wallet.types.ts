@@ -48,6 +48,25 @@ export interface WithdrawalRequest {
   idempotencyKey: string;
 }
 
+export type WithdrawalStatus = "PENDING" | "APPROVED" | "DONE" | "REJECTED";
+
+export interface WithdrawalHistoryItem {
+  id: number;
+  amount: number;
+  fee: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  status: WithdrawalStatus;
+  adminNote: string | null;
+  transferReference: string | null;
+  approvedByUsername: string | null;
+  processorUsername: string | null;
+  createdAt: string;
+  approvedAt: string | null;
+  processedAt: string | null;
+}
+
 export interface DepositRequest {
   amount: number;
   idempotencyKey: string;

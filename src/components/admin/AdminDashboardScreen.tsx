@@ -25,8 +25,8 @@ export function AdminDashboardScreen(){
       <Metric label="Đơn trong tháng" value={d.ordersThisMonth.toLocaleString("vi-VN")} note="Không tính đơn đã hoàn tiền" icon={Banknote}/>
       <Metric label="GMV trong tháng" value={formatCurrency(d.gmvThisMonth)} note="Tự giảm khi đơn hoàn tiền" icon={TrendingUp}/>
       <Metric label="Phí sàn đã thu" value={formatCurrency(d.totalCollectedFees)} note={`Tháng này ${formatCurrency(d.collectedFeesThisMonth)}`} icon={BadgeDollarSign}/>
-      <Metric label="Khiếu nại mở" value={d.openDisputes.toLocaleString("vi-VN")} note={`Tỷ lệ toàn sàn ${d.disputeRate.toLocaleString("vi-VN",{maximumFractionDigits:2})}%`} icon={Scale} href="/admin/disputes" alert={d.openDisputes>0}/>
-      <Metric label="Chờ duyệt rút" value={d.pendingWithdrawals.toLocaleString("vi-VN")} note="Tiền đã được giữ khi tạo yêu cầu" icon={Landmark} href="/admin/withdrawals?status=PENDING" alert={d.pendingWithdrawals>0}/>
+      <Metric label="Tranh chấp cần xử lý" value={d.openDisputes.toLocaleString("vi-VN")} note={`Chỉ tính ADMIN_REVIEW · Tỷ lệ toàn sàn ${d.disputeRate.toLocaleString("vi-VN",{maximumFractionDigits:2})}%`} icon={Scale} href="/admin/disputes" alert={d.openDisputes>0}/>
+      <Metric label="Rút tiền cần xử lý" value={d.pendingWithdrawals.toLocaleString("vi-VN")} note="Gồm yêu cầu chờ kiểm tra và đang chuyển khoản" icon={Landmark} href="/admin/withdrawals" alert={d.pendingWithdrawals>0}/>
       <Metric label="Nạp cần đối soát" value={d.depositsNeedReview.toLocaleString("vi-VN")} note="REVIEW_REQUIRED" icon={CircleAlert} href="/admin/deposits?status=REVIEW_REQUIRED" alert={d.depositsNeedReview>0}/>
       <Metric label="Tổng số dư tạm giữ" value={formatCurrency(d.totalHoldBalance)} note="Tổng hold balance toàn hệ thống" icon={WalletCards}/>
     </section>

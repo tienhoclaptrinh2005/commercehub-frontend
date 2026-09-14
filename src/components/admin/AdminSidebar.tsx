@@ -6,6 +6,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { disputeService } from "@/services/dispute.service";
 
 const links = [
   ["/admin", "Tổng quan", LayoutDashboard],
@@ -23,6 +26,28 @@ const links = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [pendingDisputes, setPendingDisputes] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      void disputeService.getAdminSummary()
+        .then((summary) => {
+          if (!cancelled) setPendingDisputes(summary.pendingCount);
+        })
+        .catch(() => {
+          /* Sidebar không chặn điều hướng khi badge thống kê tạm thời lỗi. */
+        });
+    };
+
+    refresh();
+    window.addEventListener("admin-disputes-updated", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("admin-disputes-updated", refresh);
+    };
+  }, [pathname]);
+
   return (
     <aside className="border-b border-slate-200 bg-slate-950 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:border-b-0 lg:border-r lg:border-slate-800">
       <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
@@ -34,6 +59,11 @@ export function AdminSidebar() {
           const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
           return <Link key={href} href={href} className={`flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${active?"bg-violet-600 text-white shadow-lg shadow-violet-950/30":"text-slate-300 hover:bg-slate-900 hover:text-white"}`}>
             <Icon className="size-4" />{label}
+            {href === "/admin/disputes" && pendingDisputes > 0 ? (
+              <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black text-white" aria-label={`${pendingDisputes} tranh chấp cần xử lý`}>
+                {pendingDisputes > 99 ? "99+" : pendingDisputes}
+              </span>
+            ) : null}
           </Link>;
         })}
       </nav>

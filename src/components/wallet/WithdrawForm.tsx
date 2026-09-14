@@ -31,6 +31,8 @@ import { getApiErrorMessage } from "@/services/api";
 import { walletService } from "@/services/wallet.service";
 import { useAuthStore } from "@/stores/authStore";
 
+import { WithdrawalHistory } from "./WithdrawalHistory";
+
 const BANKS = [
   "Vietcombank",
   "Techcombank",
@@ -84,6 +86,7 @@ export function WithdrawForm() {
   const session = useAuthStore((state) => state.session);
   const { wallet, isLoading, error: walletError, refresh } = useWalletSummary();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
   const [retryIdempotencyKey, setRetryIdempotencyKey] = useState<string | null>(
     null,
   );
@@ -148,6 +151,12 @@ export function WithdrawForm() {
             <dt className="text-slate-500">Số tài khoản</dt>
             <dd className="font-bold">{values.accountNumber}</dd>
           </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Tên chủ tài khoản</dt>
+            <dd className="text-right font-bold">
+              {values.accountName.trim().toLocaleUpperCase("vi-VN")}
+            </dd>
+          </div>
         </dl>
       ),
       confirmLabel: "Gửi yêu cầu",
@@ -159,7 +168,7 @@ export function WithdrawForm() {
     setRetryIdempotencyKey(idempotencyKey);
 
     try {
-      const message = await walletService.requestWithdrawal({
+      await walletService.requestWithdrawal({
         amount,
         bankName: values.bankName.trim(),
         accountNumber: values.accountNumber.trim(),
@@ -169,6 +178,7 @@ export function WithdrawForm() {
 
       setRetryIdempotencyKey(null);
       await refresh();
+      setHistoryReloadKey((value) => value + 1);
       reset({
         amount: "",
         bankName: "",
@@ -177,7 +187,7 @@ export function WithdrawForm() {
       });
       modal.showSuccess({
         title: "Gửi yêu cầu rút tiền thành công",
-        description: message,
+        description: "Yêu cầu đang chờ Admin kiểm tra.",
         details: (
           <p className="text-center text-xs text-slate-500">
             Yêu cầu đang chờ Admin xử lý. Số tiền sẽ được hoàn lại nếu yêu cầu bị từ chối.
@@ -424,7 +434,7 @@ export function WithdrawForm() {
           <BadgeInfo className="mt-0.5 size-5 shrink-0 text-sky-600" />
           <div>
             <h2 className="font-bold text-slate-900">Lưu ý quan trọng</h2>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 sm:text-sm">
+            <ul className="mt-3 grid list-disc gap-x-8 gap-y-1 pl-5 text-xs leading-5 sm:text-sm lg:grid-cols-2">
               <li>
                 Kiểm tra kỹ thông tin tài khoản ngân hàng trước khi xác nhận.
               </li>
@@ -436,11 +446,13 @@ export function WithdrawForm() {
                 khả dụng.
               </li>
               <li>Nếu yêu cầu bị từ chối, hệ thống tự động hoàn tiền về ví.</li>
-              <li>Yêu cầu rút tiền thường được xử lý trong vòng 24 giờ .</li>
+              <li>Yêu cầu rút tiền thường được xử lý trong vòng 48 giờ.</li>
             </ul>
           </div>
         </div>
       </aside>
+
+      <WithdrawalHistory reloadKey={historyReloadKey} />
     </div>
   );
 }

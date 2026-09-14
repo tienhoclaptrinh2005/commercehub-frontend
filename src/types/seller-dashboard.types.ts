@@ -36,4 +36,5 @@ export interface SellerNotificationData {
   newPreOrderRequestCount: number;
   processingPreOrderCount: number;
   activeDisputeCount: number;
+  withdrawalUpdateCount: number;
 }

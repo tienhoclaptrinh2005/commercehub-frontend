@@ -13,6 +13,7 @@ export type DisputeResolution =
   | "BUYER_CONFIRMATION_TIMEOUT";
 
 export type DisputeResolvedBy = "BUYER" | "ADMIN" | "SYSTEM";
+export type DisputeEscalatedBy = "BUYER" | "SELLER";
 
 export interface Dispute {
   id: number;
@@ -24,6 +25,8 @@ export interface Dispute {
   shopName: string;
   productName: string;
   variantName: string;
+  buyerUsername: string | null;
+  sellerUsername: string | null;
   reason: string;
   evidenceUrls: string[];
   shopResponse: string | null;
@@ -34,6 +37,10 @@ export interface Dispute {
   refundAmount: number | null;
   resolutionNote: string | null;
   resolverId: number | null;
+  escalatedAt: string | null;
+  escalatedBy: DisputeEscalatedBy | null;
+  escalationReason: string | null;
+  adminOverdue: boolean;
   createdAt: string;
   deadlineAt: string;
   resolvedAt: string | null;
@@ -43,6 +50,25 @@ export interface Dispute {
 export interface SellerDisputeResponseRequest {
   response?: string;
   evidenceUrls?: string[];
+}
+
+export interface EscalateDisputeRequest {
+  reason: string;
+  evidenceUrls?: string[];
+}
+
+export interface AdminDisputeListParams {
+  scope?: "QUEUE" | "ALL";
+  status?: DisputeStatus;
+  keyword?: string;
+  overdue?: boolean;
+  page?: number;
+  size?: number;
+}
+
+export interface AdminDisputeSummary {
+  pendingCount: number;
+  overdueCount: number;
 }
 
 export interface CreateDisputeRequest {

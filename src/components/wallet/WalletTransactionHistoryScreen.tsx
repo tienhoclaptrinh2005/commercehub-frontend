@@ -218,6 +218,7 @@ export function WalletTransactionHistoryScreen() {
 function TransactionRow({ transaction }: { transaction: WalletTransaction }) {
   const dateTime = formatDateTime(transaction.createdAt);
   const isPositive = Number(transaction.amount) > 0;
+  const isStatusEvent = transaction.transactionType === "WITHDRAW_DONE";
   const href = orderHref(transaction);
   const description = transaction.description || TYPE_LABELS[transaction.transactionType] || transaction.transactionType;
 
@@ -228,7 +229,7 @@ function TransactionRow({ transaction }: { transaction: WalletTransaction }) {
       <td className="px-4 py-5"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${TYPE_TONES[transaction.transactionType] || "border-slate-200 bg-slate-50 text-slate-600"}`}>{TYPE_LABELS[transaction.transactionType] || transaction.transactionType}</span></td>
       <td className="max-w-[430px] px-4 py-5 text-sm leading-5 text-slate-700">{href ? <Link href={href} className="font-semibold transition hover:text-emerald-700 hover:underline">{description}</Link> : description}{transaction.referenceCode ? <span className="mt-1 block text-xs text-slate-400">Tham chiếu: {transaction.referenceCode}</span> : null}</td>
       <td className="whitespace-nowrap px-4 py-5 text-xs font-semibold text-slate-500">{balanceLabel(transaction.balanceType)}</td>
-      <td className={`whitespace-nowrap px-4 py-5 text-right font-black ${isPositive ? "text-emerald-700" : "text-rose-600"}`}><span className="inline-flex items-center gap-1">{isPositive ? <ArrowDownLeft className="size-3.5" /> : <ArrowUpRight className="size-3.5" />}{isPositive ? "+" : ""}{formatCurrency(Number(transaction.amount))}</span></td>
+      <td className={`whitespace-nowrap px-4 py-5 text-right font-black ${isStatusEvent ? "text-slate-500" : isPositive ? "text-emerald-700" : "text-rose-600"}`}><span className="inline-flex items-center gap-1">{isStatusEvent ? "Không đổi số dư" : <>{isPositive ? <ArrowDownLeft className="size-3.5" /> : <ArrowUpRight className="size-3.5" />}{isPositive ? "+" : ""}{formatCurrency(Number(transaction.amount))}</>}</span></td>
       <td className="whitespace-nowrap px-6 py-5 text-right font-bold text-slate-900">{formatCurrency(Number(transaction.balanceAfter))}</td>
     </tr>
   );

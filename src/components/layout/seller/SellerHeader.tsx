@@ -16,7 +16,17 @@ export function SellerHeader() {
       + notifications.newPreOrderRequestCount
       + notifications.processingPreOrderCount
       + notifications.activeDisputeCount
+      + (notifications.withdrawalUpdateCount ?? 0)
     : 0;
+  const nonWithdrawalCount = notifications
+    ? notifications.recentInstantOrderCount
+      + notifications.newPreOrderRequestCount
+      + notifications.processingPreOrderCount
+      + notifications.activeDisputeCount
+    : 0;
+  const notificationHref = (notifications?.withdrawalUpdateCount ?? 0) > 0 && nonWithdrawalCount === 0
+    ? "/seller/wallet/withdraw"
+    : "/seller/orders";
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -53,7 +63,7 @@ export function SellerHeader() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
-            href="/seller/orders"
+            href={notificationHref}
             className="relative grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
             aria-label={`${notificationCount} hoạt động bán hàng cần theo dõi`}
             title={`${notificationCount} hoạt động bán hàng cần theo dõi`}

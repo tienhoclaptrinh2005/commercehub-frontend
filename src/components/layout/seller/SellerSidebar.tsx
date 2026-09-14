@@ -9,17 +9,20 @@ import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
 
 import { sellerNavigation, type SellerNavigationItem } from "./navigation";
 
-function isNavigationActive(pathname: string, item: SellerNavigationItem) {
-  if (item.href === "/seller") return pathname === item.href;
-  if (item.href === "/seller/orders") {
-    return pathname === item.href || /^\/seller\/orders\/\d+$/.test(pathname);
-  }
-  return pathname.startsWith(item.href);
+function isRouteMatch(pathname: string, item: SellerNavigationItem) {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 export function SellerNavigation({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
   const { data: notifications } = useSellerNotifications();
+  const activeHref = sellerNavigation
+    .filter((item) => item.available && isRouteMatch(pathname, item))
+    .reduce(
+      (mostSpecific, item) =>
+        item.href.length > mostSpecific.length ? item.href : mostSpecific,
+      "",
+    );
 
   function notificationCount(item: SellerNavigationItem) {
     if (!notifications || !item.notificationKey) return 0;
@@ -29,14 +32,17 @@ export function SellerNavigation({ compact = false }: { compact?: boolean }) {
     if (item.notificationKey === "activePreOrders") {
       return notifications.newPreOrderRequestCount + notifications.processingPreOrderCount;
     }
-    return notifications.activeDisputeCount;
+    if (item.notificationKey === "activeDisputes") {
+      return notifications.activeDisputeCount;
+    }
+    return notifications.withdrawalUpdateCount ?? 0;
   }
 
   return (
     <nav className="space-y-1" aria-label="Quản lý bán hàng">
       {sellerNavigation.map((item) => {
         const Icon = item.icon;
-        const active = isNavigationActive(pathname, item);
+        const active = item.href === activeHref;
         const badgeCount = notificationCount(item);
         const className = `group flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${
           active
@@ -46,30 +52,37 @@ export function SellerNavigation({ compact = false }: { compact?: boolean }) {
               : "cursor-not-allowed text-slate-400"
         }`;
 
-        return !item.available ? (
-          <span key={item.href} className={className} title="Tính năng sẽ được xây dựng sau">
-            <Icon className="size-[18px] shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            {!compact ? (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                Sắp có
+        return (
+          <div
+            key={item.href}
+            className={item.dividerBefore ? "mt-3 border-t border-slate-100 pt-3" : undefined}
+          >
+            {!item.available ? (
+              <span className={className} title="Tính năng sẽ được xây dựng sau">
+                <Icon className="size-[18px] shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {!compact ? (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                    Sắp có
+                  </span>
+                ) : null}
               </span>
-            ) : null}
-          </span>
-        ) : (
-          <Link key={item.href} href={item.href} className={className}>
-            <Icon className="size-[18px] shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            {badgeCount > 0 ? (
-              <span
-                className="grid min-w-5 shrink-0 place-items-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-sm ring-2 ring-white"
-                title={`${badgeCount} mục cần theo dõi`}
-                aria-label={`${badgeCount} mục cần theo dõi`}
-              >
-                {badgeCount > 9 ? "9+" : badgeCount}
-              </span>
-            ) : null}
-          </Link>
+            ) : (
+              <Link href={item.href} className={className} aria-current={active ? "page" : undefined}>
+                <Icon className="size-[18px] shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {badgeCount > 0 ? (
+                  <span
+                    className="grid min-w-5 shrink-0 place-items-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-sm ring-2 ring-white"
+                    title={`${badgeCount} mục cần theo dõi`}
+                    aria-label={`${badgeCount} mục cần theo dõi`}
+                  >
+                    {badgeCount > 9 ? "9+" : badgeCount}
+                  </span>
+                ) : null}
+              </Link>
+            )}
+          </div>
         );
       })}
     </nav>

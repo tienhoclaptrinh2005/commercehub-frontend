@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Clock3,
   LayoutDashboard,
+  Landmark,
   PackageCheck,
   ReceiptText,
   Settings,
@@ -16,7 +17,8 @@ export interface SellerNavigationItem {
   href: string;
   icon: LucideIcon;
   available: boolean;
-  notificationKey?: "recentInstantOrders" | "activePreOrders" | "activeDisputes";
+  dividerBefore?: boolean;
+  notificationKey?: "recentInstantOrders" | "activePreOrders" | "activeDisputes" | "withdrawalUpdates";
 }
 
 export const sellerNavigation: SellerNavigationItem[] = [
@@ -37,6 +39,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/orders",
     icon: ShoppingBag,
     available: true,
+    dividerBefore: true,
   },
   {
     label: "Đơn giao ngay",
@@ -64,6 +67,14 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/wallet",
     icon: WalletCards,
     available: true,
+    dividerBefore: true,
+  },
+  {
+    label: "Yêu cầu rút tiền",
+    href: "/seller/wallet/withdraw",
+    icon: Landmark,
+    available: true,
+    notificationKey: "withdrawalUpdates",
   },
   {
     label: "Phí sàn",
@@ -76,6 +87,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/vouchers",
     icon: TicketPercent,
     available: false,
+    dividerBefore: true,
   },
   {
     label: "Cấu hình",

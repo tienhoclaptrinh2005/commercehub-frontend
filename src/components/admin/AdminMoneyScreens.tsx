@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Banknote, Check, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Pagination } from "@/components/common/Pagination";
 import { useAppModal } from "@/components/ui/app-modal";
@@ -18,12 +18,74 @@ const depositLoader=(p:Params)=>adminService.deposits(p);
 const withdrawalLoader=(p:Params)=>adminService.withdrawals(p);
 const transactionLoader=(p:Params)=>adminService.transactions({keyword:p.keyword,type:p.status,page:p.page,size:p.size});
 const DEPOSITS=["PENDING","SUCCESS","REVIEW_REQUIRED","FAILED","EXPIRED"].map(v=>({value:v,label:v.replaceAll("_"," ")}));
-const WITHDRAWALS=["PENDING","DONE","REJECTED"].map(v=>({value:v,label:v}));
+const WITHDRAWALS=[
+  {value:"PENDING",label:"Chờ kiểm tra"},
+  {value:"APPROVED",label:"Đang chuyển khoản"},
+  {value:"DONE",label:"Đã chuyển tiền"},
+  {value:"REJECTED",label:"Đã từ chối"},
+];
 const TRANSACTIONS=["DEPOSIT","ORDER_PAYMENT","SALE_HOLD","HOLD_RELEASE_NET","PLATFORM_FEE","ORDER_REFUND","DISPUTE_REFUND","WITHDRAW_PENDING","WITHDRAW_DONE","WITHDRAW_CANCEL","ADMIN_ADJUST"].map(v=>({value:v,label:v.replaceAll("_"," ")}));
 
 export function AdminDepositsScreen(){return <MoneyScreen eyebrow="Đối soát đầu vào" title="Trạng thái nạp tiền" description="Theo dõi giao dịch SePay, mã thanh toán và các khoản cần kiểm tra thủ công." columns={["Mã nạp","Người dùng","Số tiền","Nhà cung cấp","Mã ngân hàng","Trạng thái","Tạo lúc","Thanh toán lúc"]} statuses={DEPOSITS} loader={depositLoader} keyOf={d=>d.id} row={(d:AdminDeposit)=><><td className="px-4 py-4 font-mono text-xs">{d.transactionCode||`#${d.id}`}</td><td className="px-4 py-4"><b>@{d.username||"—"}</b><p className="text-xs text-slate-400">{d.email}</p></td><td className="px-4 py-4 font-black text-emerald-700">{formatCurrency(d.amount)}</td><td className="px-4 py-4">{d.provider}</td><td className="px-4 py-4 font-mono text-xs">{d.providerTransactionId||"—"}</td><td className="px-4 py-4"><AdminStatus value={d.status}/></td><td className="px-4 py-4 text-xs">{dt(d.createdAt)}</td><td className="px-4 py-4 text-xs">{dt(d.paidAt)}</td></>}/>}
 
-export function AdminWithdrawalsScreen(){const modal=useAppModal();async function decide(item:AdminWithdrawal,reload:()=>void,action:"APPROVE"|"REJECT"){const note=window.prompt(action==="APPROVE"?"Ghi chú chuyển khoản (không bắt buộc):":"Nhập lý do từ chối:")||"";if(action==="REJECT"&&!note)return;const ok=await modal.confirm({title:action==="APPROVE"?"Xác nhận đã chuyển tiền?":"Từ chối yêu cầu rút?",description:`${item.accountName} · ${formatCurrency(item.amount)}`,danger:action==="REJECT"});if(!ok)return;try{await adminService.decideWithdrawal(item.id,action,note||undefined);modal.showSuccess({title:"Đã xử lý yêu cầu rút tiền"});reload()}catch(e){modal.showError({title:"Không thể xử lý",description:getApiErrorMessage(e)})}}return <MoneyScreen eyebrow="Payout seller" title="Yêu cầu rút tiền" description="Duyệt sau khi đã chuyển khoản thực tế; từ chối sẽ hoàn tiền nguyên tử về ví người dùng." columns={["ID","Người nhận","Số tiền","Ngân hàng","Số tài khoản","Tên tài khoản","Trạng thái","Tạo lúc","Thao tác"]} statuses={WITHDRAWALS} loader={withdrawalLoader} keyOf={w=>w.id} row={(w:AdminWithdrawal,reload)=><><td className="px-4 py-4 font-mono">#{w.id}</td><td className="px-4 py-4"><b>@{w.username||"—"}</b><p className="text-xs text-slate-400">{w.email}</p></td><td className="px-4 py-4 font-black">{formatCurrency(w.amount)}</td><td className="px-4 py-4">{w.bankName}</td><td className="px-4 py-4 font-mono">{w.accountNumber}</td><td className="px-4 py-4">{w.accountName}</td><td className="px-4 py-4"><AdminStatus value={w.status}/></td><td className="px-4 py-4 text-xs">{dt(w.createdAt)}</td><td className="px-4 py-4">{w.status==="PENDING"?<div className="flex gap-2"><button title="Duyệt" onClick={()=>decide(w,reload,"APPROVE")} className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><Check className="size-4"/></button><button title="Từ chối" onClick={()=>decide(w,reload,"REJECT")} className="grid size-9 place-items-center rounded-lg bg-rose-50 text-rose-700"><X className="size-4"/></button></div>:<span className="text-xs text-slate-400">{w.processorUsername?`bởi @${w.processorUsername}`:"—"}</span>}</td></>}/>}
+export function AdminWithdrawalsScreen(){
+  const modal=useAppModal();
+
+  async function decide(item:AdminWithdrawal,reload:()=>void,action:"APPROVE"|"COMPLETE"|"REJECT"){
+    let note="";
+    let transferReference="";
+    if(action==="REJECT"){
+      note=window.prompt("Nhập lý do từ chối (bắt buộc):")?.trim()||"";
+      if(!note)return;
+    }
+    if(action==="COMPLETE"){
+      transferReference=window.prompt("Nhập mã tham chiếu giao dịch ngân hàng (bắt buộc):")?.trim()||"";
+      if(!transferReference)return;
+    }
+    const title=action==="APPROVE"
+      ?"Tiếp nhận yêu cầu rút tiền?"
+      :action==="COMPLETE"
+        ?"Xác nhận đã chuyển tiền?"
+        :"Từ chối và hoàn tiền?";
+    const ok=await modal.confirm({
+      title,
+      description:`WD-${String(item.id).padStart(6,"0")} · ${item.accountName} · ${formatCurrency(item.amount)}`,
+      danger:action==="REJECT",
+      confirmLabel:action==="APPROVE"?"Tiếp nhận":action==="COMPLETE"?"Đã chuyển tiền":"Từ chối và hoàn tiền",
+    });
+    if(!ok)return;
+    try{
+      await adminService.decideWithdrawal(item.id,{
+        action,
+        note:note||undefined,
+        transferReference:transferReference||undefined,
+      });
+      modal.showSuccess({title:action==="APPROVE"?"Đã tiếp nhận yêu cầu":action==="COMPLETE"?"Đã xác nhận chuyển tiền":"Đã từ chối và hoàn tiền"});
+      reload();
+    }catch(e){
+      modal.showError({title:"Không thể xử lý",description:getApiErrorMessage(e)});
+    }
+  }
+
+  return <MoneyScreen
+    eyebrow="Thanh toán cho Seller"
+    title="Yêu cầu rút tiền"
+    description="Tiếp nhận yêu cầu, chuyển khoản thực tế rồi xác nhận bằng mã tham chiếu. Từ chối sẽ hoàn tiền nguyên tử về ví Seller."
+    columns={["Mã yêu cầu","Người nhận","Số tiền","Tài khoản ngân hàng","Trạng thái","Tiến độ","Thao tác"]}
+    statuses={WITHDRAWALS}
+    loader={withdrawalLoader}
+    keyOf={w=>w.id}
+    row={(w:AdminWithdrawal,reload)=><>
+      <td className="px-4 py-4 font-mono text-xs">WD-{String(w.id).padStart(6,"0")}</td>
+      <td className="px-4 py-4"><b>@{w.username||"—"}</b><p className="text-xs text-slate-400">{w.email}</p></td>
+      <td className="px-4 py-4 font-black">{formatCurrency(w.amount)}</td>
+      <td className="px-4 py-4"><b>{w.bankName}</b><p className="font-mono text-xs text-slate-500">{w.accountNumber}</p><p className="text-xs text-slate-500">{w.accountName}</p></td>
+      <td className="px-4 py-4"><AdminStatus value={w.status}/>{w.adminNote?<p className="mt-2 max-w-56 text-xs text-slate-500" title={w.adminNote}>{w.adminNote}</p>:null}{w.transferReference?<p className="mt-2 font-mono text-xs text-emerald-700">{w.transferReference}</p>:null}</td>
+      <td className="px-4 py-4 text-xs text-slate-500"><p>Tạo: {dt(w.createdAt)}</p>{w.approvedAt?<p className="mt-1">Tiếp nhận: {dt(w.approvedAt)}{w.approvedByUsername?` · @${w.approvedByUsername}`:""}</p>:null}{w.processedAt?<p className="mt-1">Xử lý: {dt(w.processedAt)}{w.processorUsername?` · @${w.processorUsername}`:""}</p>:null}</td>
+      <td className="px-4 py-4">{w.status==="PENDING"?<div className="flex gap-2"><button title="Tiếp nhận" onClick={()=>decide(w,reload,"APPROVE")} className="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-700"><Check className="size-4"/></button><button title="Từ chối và hoàn tiền" onClick={()=>decide(w,reload,"REJECT")} className="grid size-9 place-items-center rounded-lg bg-rose-50 text-rose-700"><X className="size-4"/></button></div>:w.status==="APPROVED"?<div className="flex gap-2"><button title="Xác nhận đã chuyển tiền" onClick={()=>decide(w,reload,"COMPLETE")} className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><Banknote className="size-4"/></button><button title="Không thể chuyển · Từ chối và hoàn tiền" onClick={()=>decide(w,reload,"REJECT")} className="grid size-9 place-items-center rounded-lg bg-rose-50 text-rose-700"><X className="size-4"/></button></div>:<span className="text-xs text-slate-400">Đã kết thúc</span>}</td>
+    </>}
+  />;
+}
 
 export function AdminTransactionsScreen(){return <MoneyScreen eyebrow="Sổ cái toàn sàn" title="Wallet Transactions" description="Truy vết mọi biến động số dư theo user, mã đơn/mã nạp và loại nghiệp vụ." columns={["Mã giao dịch","Người dùng","Loại","Số dư","Biến động","Trước → sau","Tham chiếu","Thời gian"]} statuses={TRANSACTIONS} loader={transactionLoader} keyOf={t=>t.id} row={(t:AdminWalletTransaction)=><><td className="max-w-36 truncate px-4 py-4 font-mono text-[11px]" title={t.id}>{t.id}</td><td className="px-4 py-4"><b>@{t.username||"PLATFORM"}</b><p className="text-xs text-slate-400">{t.email||`Ví #${t.walletId}`}</p></td><td className="px-4 py-4"><AdminStatus value={t.transactionType}/></td><td className="px-4 py-4 text-xs">{t.balanceType}</td><td className={`px-4 py-4 font-black ${t.amount>=0?"text-emerald-700":"text-rose-600"}`}>{t.amount>0?"+":""}{formatCurrency(t.amount)}</td><td className="px-4 py-4 text-xs">{formatCurrency(t.balanceBefore)} → {formatCurrency(t.balanceAfter)}</td><td className="px-4 py-4"><p className="font-mono text-xs">{t.referenceCode||"—"}</p><p className="text-[10px] text-slate-400">{t.referenceType||""}</p></td><td className="px-4 py-4 text-xs">{dt(t.createdAt)}</td></>}/>}
 function dt(value:string|null){return value?new Intl.DateTimeFormat("vi-VN",{dateStyle:"short",timeStyle:"short"}).format(new Date(value)):"—"}
