@@ -1,6 +1,7 @@
 export * from "./auth.types";
 export * from "./admin.types";
 export * from "./cart.types";
+export * from "./chat.types";
 export * from "./category.types";
 export * from "./common.types";
 export * from "./dispute.types";

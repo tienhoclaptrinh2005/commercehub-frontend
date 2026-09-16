@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, Menu, Store, X } from "lucide-react";
+import { Bell, Menu, MessageSquareText, Store, X } from "lucide-react";
 import Link from "next/link";
 
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { BrandLogo } from "@/components/auth/BrandLogo";
 import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
+import { ChatUnreadBadge } from "@/components/chat/ChatUnreadBadge";
 
 import { SellerNavigation } from "./SellerSidebar";
 
@@ -62,6 +63,15 @@ export function SellerHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/chat"
+            className="relative grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+            aria-label="Tin nhắn"
+            title="Tin nhắn"
+          >
+            <MessageSquareText className="size-[18px]" />
+            <ChatUnreadBadge />
+          </Link>
           <Link
             href={notificationHref}
             className="relative grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"

@@ -468,6 +468,13 @@ function ProductDetailContent({ product }: { product: ProductDetail }) {
                 </span>
               )}
             </div>
+            <Link
+              href={`/chat?shopId=${product.shopId}`}
+              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white text-sm font-bold text-emerald-700 transition hover:bg-emerald-50"
+            >
+              <MessageSquareText className="size-4" />
+              Nhắn tin với gian hàng
+            </Link>
           </section>
 
           <ProductPurchasePanel product={product} />

@@ -51,7 +51,7 @@ export default function PublicUserPage() {
         sellerEnabled: hasActiveSellerIdentity,
         roles: profile.roles ?? [],
         statusLabel: "Đang hoạt động",
-        messageHref: `/chat?username=${encodeURIComponent(profile.username)}`,
+        messageHref: profile.shopId ? `/chat?shopId=${profile.shopId}` : "/chat",
         products: hasPublicShop ? shopProducts.products : [],
         productsLoading: hasPublicShop && shopProducts.isLoading,
         productsError: hasPublicShop ? shopProducts.error : null,

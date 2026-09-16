@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { BrandLogo } from "@/components/auth/BrandLogo";
 import { useSellerNotifications } from "@/hooks/api/useSellerNotifications";
+import { useChatRealtime } from "@/components/chat/ChatRealtimeProvider";
 
 import { sellerNavigation, type SellerNavigationItem } from "./navigation";
 
@@ -16,6 +17,7 @@ function isRouteMatch(pathname: string, item: SellerNavigationItem) {
 export function SellerNavigation({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
   const { data: notifications } = useSellerNotifications();
+  const { unreadCount } = useChatRealtime();
   const activeHref = sellerNavigation
     .filter((item) => item.available && isRouteMatch(pathname, item))
     .reduce(
@@ -25,7 +27,9 @@ export function SellerNavigation({ compact = false }: { compact?: boolean }) {
     );
 
   function notificationCount(item: SellerNavigationItem) {
-    if (!notifications || !item.notificationKey) return 0;
+    if (!item.notificationKey) return 0;
+    if (item.notificationKey === "unreadMessages") return unreadCount;
+    if (!notifications) return 0;
     if (item.notificationKey === "recentInstantOrders") {
       return notifications.recentInstantOrderCount;
     }

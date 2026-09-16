@@ -3,6 +3,7 @@ import {
   Clock3,
   LayoutDashboard,
   Landmark,
+  MessageSquareText,
   PackageCheck,
   ReceiptText,
   Settings,
@@ -18,7 +19,7 @@ export interface SellerNavigationItem {
   icon: LucideIcon;
   available: boolean;
   dividerBefore?: boolean;
-  notificationKey?: "recentInstantOrders" | "activePreOrders" | "activeDisputes" | "withdrawalUpdates";
+  notificationKey?: "recentInstantOrders" | "activePreOrders" | "activeDisputes" | "withdrawalUpdates" | "unreadMessages";
 }
 
 export const sellerNavigation: SellerNavigationItem[] = [
@@ -33,6 +34,13 @@ export const sellerNavigation: SellerNavigationItem[] = [
     href: "/seller/products",
     icon: PackageCheck,
     available: true,
+  },
+  {
+    label: "Tin nhắn",
+    href: "/chat",
+    icon: MessageSquareText,
+    available: true,
+    notificationKey: "unreadMessages",
   },
   {
     label: "Tất cả đơn hàng",

@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Menu, ShoppingCart, UserRound, X } from "lucide-react";
+import { LogOut, Menu, MessageSquareText, ShoppingCart, UserRound, X } from "lucide-react";
 import Link from "next/link";
 
 import { useAuth } from "@/hooks/auth/useAuth";
+import { ChatUnreadBadge } from "@/components/chat/ChatUnreadBadge";
 
 import { buyerNavigation } from "./navigation";
 
@@ -41,6 +42,15 @@ export function MobileNav() {
             <ShoppingCart className="size-5" />
             Giỏ hàng
           </Link>
+          {isHydrated && user ? (
+            <Link
+              href="/chat"
+              className="relative flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <span className="relative"><MessageSquareText className="size-5" /><ChatUnreadBadge /></span>
+              Tin nhắn
+            </Link>
+          ) : null}
           {isHydrated && user ? (
             <div className="mt-2 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
               <Link href="/profile" className="flex min-w-0 flex-1 items-center gap-3">

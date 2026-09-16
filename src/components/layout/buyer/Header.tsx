@@ -15,6 +15,7 @@ import { BrandLogo } from "@/components/auth/BrandLogo";
 import { CartIcon } from "@/components/cart/CartIcon";
 import { useWalletSummary } from "@/hooks/api/useWallet";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { ChatUnreadBadge } from "@/components/chat/ChatUnreadBadge";
 
 import { CategoryBar } from "./CategoryBar";
 import { MobileNav } from "./MobileNav";
@@ -63,10 +64,11 @@ export function Header() {
             )}
             <Link
               href="/chat"
-              className="transition hover:text-emerald-700"
+              className="relative transition hover:text-emerald-700"
               aria-label="Tin nhắn"
             >
               <MessageSquareText className="size-4" />
+              <ChatUnreadBadge />
             </Link>
           </div>
         </div>

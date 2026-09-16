@@ -6,6 +6,7 @@ import { AUTH_SESSION_CHANGED_EVENT } from "@/lib/auth";
 import { useAuthStore } from "@/stores/authStore";
 import type { AuthSession } from "@/types";
 import { AppModalProvider } from "@/components/ui/app-modal";
+import { ChatRealtimeProvider } from "@/components/chat/ChatRealtimeProvider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const hydrate = useAuthStore((state) => state.hydrate);
@@ -38,5 +39,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     };
   }, [hydrate, syncCurrentUser, syncSession]);
 
-  return <AppModalProvider>{children}</AppModalProvider>;
+  return (
+    <AppModalProvider>
+      <ChatRealtimeProvider>{children}</ChatRealtimeProvider>
+    </AppModalProvider>
+  );
 }

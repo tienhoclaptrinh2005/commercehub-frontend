@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "uat:chat": "node scripts/chat-uat.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
+    "@stomp/stompjs": "^7.3.0",
     "axios": "^1.19.0",
     "lucide-react": "^1.28.0",
     "next": "16.3.0",
