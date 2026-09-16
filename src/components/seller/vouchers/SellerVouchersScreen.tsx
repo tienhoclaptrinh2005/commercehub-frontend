@@ -71,7 +71,7 @@ function initialForm(): VoucherFormState {
     discountType: "PERCENT",
     discountValue: "10",
     maxDiscountAmount: "50000",
-    minOrderAmount: "50000",
+    minOrderAmount: "",
     applyAllProducts: true,
     productIds: [],
     startsAt: localDateTime(starts),
@@ -178,7 +178,9 @@ export function SellerVouchersScreen() {
       discountValue: Number(form.discountValue),
       maxDiscountAmount: form.discountType === "PERCENT" && form.maxDiscountAmount
         ? Number(form.maxDiscountAmount) : undefined,
-      minOrderAmount: Number(form.minOrderAmount),
+      minOrderAmount: form.minOrderAmount.trim()
+        ? Number(form.minOrderAmount)
+        : undefined,
       applyAllProducts: form.applyAllProducts,
       productIds: form.applyAllProducts ? [] : form.productIds,
       startsAt: new Date(form.startsAt).toISOString(),
@@ -247,7 +249,7 @@ export function SellerVouchersScreen() {
                   <tr key={voucher.id} className="hover:bg-slate-50/70">
                     <td className="px-5 py-4"><p className="font-black text-violet-700">{voucher.code}</p><p className="mt-1 max-w-52 truncate text-xs text-slate-400">{voucher.description || "Không có mô tả"}</p></td>
                     <td className="px-5 py-4 font-bold text-slate-800">{voucher.discountType === "PERCENT" ? `${voucher.discountValue}%${voucher.maxDiscountAmount ? ` · tối đa ${formatCurrency(voucher.maxDiscountAmount)}` : ""}` : formatCurrency(voucher.discountValue)}</td>
-                    <td className="px-5 py-4"><p>Từ {formatCurrency(voucher.minOrderAmount)}</p><p className="mt-1 text-xs text-slate-400">{voucher.applyAllProducts ? "Tất cả sản phẩm" : `${voucher.productIds.length} sản phẩm`}</p></td>
+                    <td className="px-5 py-4"><p>{voucher.minOrderAmount > 0 ? `Từ ${formatCurrency(voucher.minOrderAmount)}` : "Không yêu cầu tối thiểu"}</p><p className="mt-1 text-xs text-slate-400">{voucher.applyAllProducts ? "Tất cả sản phẩm" : `${voucher.productIds.length} sản phẩm`}</p></td>
                     <td className="px-5 py-4 font-bold">{voucher.usedCount}/{voucher.usageLimit}</td>
                     <td className="px-5 py-4 text-xs text-slate-500"><p>{new Date(voucher.startsAt).toLocaleString("vi-VN")}</p><p>đến {new Date(voucher.expiresAt).toLocaleString("vi-VN")}</p></td>
                     <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${voucher.status === "ACTIVE" ? "bg-emerald-50 text-emerald-700" : voucher.status === "SCHEDULED" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{STATUS_LABEL[voucher.status]}</span></td>
@@ -272,7 +274,7 @@ export function SellerVouchersScreen() {
                 <Field label="Loại giảm"><select value={form.discountType} onChange={(event) => setForm({ ...form, discountType: event.target.value as VoucherDiscountType })} className="field"><option value="PERCENT">Theo phần trăm</option><option value="FIXED">Số tiền cố định</option></select></Field>
                 <Field label={form.discountType === "PERCENT" ? "Phần trăm giảm" : "Số tiền giảm"}><input required type="number" min="1" max={form.discountType === "PERCENT" ? "99" : undefined} value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: event.target.value })} className="field" /></Field>
                 {form.discountType === "PERCENT" ? <Field label="Giảm tối đa"><input type="number" min="1" value={form.maxDiscountAmount} onChange={(event) => setForm({ ...form, maxDiscountAmount: event.target.value })} className="field" /></Field> : null}
-                <Field label="Đơn tối thiểu"><input required type="number" min="0" value={form.minOrderAmount} onChange={(event) => setForm({ ...form, minOrderAmount: event.target.value })} className="field" /></Field>
+                <Field label="Đơn tối thiểu"><input type="number" min="0" value={form.minOrderAmount} onChange={(event) => setForm({ ...form, minOrderAmount: event.target.value })} className="field" placeholder="0 (mặc định)" /></Field>
                 <Field label="Tổng lượt sử dụng"><input required type="number" min={Math.max(1, editing?.usedCount ?? 1)} value={form.usageLimit} onChange={(event) => setForm({ ...form, usageLimit: event.target.value })} className="field" /></Field>
                 <Field label="Bắt đầu"><input required type="datetime-local" value={form.startsAt} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} className="field" /></Field>
                 <Field label="Kết thúc"><input required type="datetime-local" value={form.expiresAt} onChange={(event) => setForm({ ...form, expiresAt: event.target.value })} className="field" /></Field>

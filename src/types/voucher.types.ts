@@ -27,7 +27,7 @@ export interface VoucherPayload {
   discountType: VoucherDiscountType;
   discountValue: number;
   maxDiscountAmount?: number;
-  minOrderAmount: number;
+  minOrderAmount?: number;
   applyAllProducts: boolean;
   productIds: number[];
   startsAt: string;
