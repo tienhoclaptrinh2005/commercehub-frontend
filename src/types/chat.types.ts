@@ -1,3 +1,5 @@
+import type { UserRole } from "./user.types";
+
 export type ChatConnectionStatus = "DISCONNECTED" | "CONNECTING" | "CONNECTED";
 export type ChatMessageType = "TEXT";
 
@@ -6,6 +8,7 @@ export interface ChatUser {
   username: string;
   fullName: string;
   avatarUrl: string | null;
+  roles: UserRole[];
 }
 
 export interface ChatMessage {
@@ -25,6 +28,7 @@ export interface ChatConversation {
   shopName: string;
   shopAvatarUrl: string | null;
   status: "OPEN" | "CLOSED";
+  viewerRole: "BUYER" | "SELLER";
   counterpart: ChatUser;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;

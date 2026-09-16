@@ -39,6 +39,28 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase();
 }
 
+function accountRoles(conversation: ChatConversation) {
+  return conversation.counterpart.roles.length > 0
+    ? conversation.counterpart.roles.join(" · ")
+    : "THÀNH VIÊN";
+}
+
+function conversationIdentity(conversation: ChatConversation) {
+  const detail = `${accountRoles(conversation)} · @${conversation.counterpart.username}`;
+  if (conversation.viewerRole === "SELLER") {
+    return {
+      name: conversation.counterpart.fullName,
+      avatarUrl: conversation.counterpart.avatarUrl,
+      detail,
+    };
+  }
+  return {
+    name: conversation.shopName,
+    avatarUrl: conversation.shopAvatarUrl,
+    detail,
+  };
+}
+
 export function ChatScreen() {
   const {
     status,
@@ -199,6 +221,7 @@ export function ChatScreen() {
     () => conversations.find((conversation) => conversation.id === activeId) ?? null,
     [activeId, conversations],
   );
+  const activeIdentity = activeConversation ? conversationIdentity(activeConversation) : null;
 
   async function loadOlder() {
     if (!activeId || !hasMore || !nextBeforeId || isLoadingOlder) return;
@@ -275,26 +298,29 @@ export function ChatScreen() {
                   <p className="mt-4 font-bold text-slate-800">Chưa có cuộc trò chuyện</p>
                   <p className="mt-1 text-sm leading-6 text-slate-500">Mở trang gian hàng hoặc sản phẩm và chọn “Nhắn tin”.</p>
                 </div>
-              ) : conversations.map((conversation) => (
-                <button key={conversation.id} type="button" onClick={() => setActiveId(conversation.id)} className={`flex w-full gap-3 border-b border-slate-100 px-4 py-4 text-left transition ${conversation.id === activeId ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
-                  <Avatar name={conversation.counterpart.fullName} src={conversation.counterpart.avatarUrl || conversation.shopAvatarUrl} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="truncate text-sm font-black text-slate-900">{conversation.shopName}</span>
-                      <span className="shrink-0 text-[10px] text-slate-400">{displayTime(conversation.lastMessageAt)}</span>
+              ) : conversations.map((conversation) => {
+                const identity = conversationIdentity(conversation);
+                return (
+                  <button key={conversation.id} type="button" onClick={() => setActiveId(conversation.id)} className={`flex w-full gap-3 border-b border-slate-100 px-4 py-4 text-left transition ${conversation.id === activeId ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
+                    <Avatar name={identity.name} src={identity.avatarUrl} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="truncate text-sm font-black text-slate-900">{identity.name}</span>
+                        <span className="shrink-0 text-[10px] text-slate-400">{displayTime(conversation.lastMessageAt)}</span>
+                      </span>
+                      <span className="mt-1 flex items-center justify-between gap-2">
+                        <span className="truncate text-xs text-slate-500">{conversation.lastMessagePreview || identity.detail}</span>
+                        {conversation.unreadCount > 0 ? <span className="grid min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-black leading-5 text-white">{conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}</span> : null}
+                      </span>
                     </span>
-                    <span className="mt-1 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs text-slate-500">{conversation.lastMessagePreview || `Bắt đầu trò chuyện với @${conversation.counterpart.username}`}</span>
-                      {conversation.unreadCount > 0 ? <span className="grid min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-black leading-5 text-white">{conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}</span> : null}
-                    </span>
-                  </span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </aside>
 
           <section className={`${activeConversation ? "flex" : "hidden lg:flex"} min-h-0 min-w-0 flex-col`}>
-            {!activeConversation ? (
+            {!activeConversation || !activeIdentity ? (
               <div className="grid flex-1 place-items-center p-8 text-center">
                 <div><MessageSquareText className="mx-auto size-14 text-slate-200" /><p className="mt-4 font-bold text-slate-600">Chọn một cuộc trò chuyện</p></div>
               </div>
@@ -302,8 +328,8 @@ export function ChatScreen() {
               <>
                 <header className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 sm:px-5">
                   <button type="button" onClick={() => setActiveId(null)} className="grid size-9 place-items-center rounded-lg hover:bg-slate-100 lg:hidden" aria-label="Quay lại"><ArrowLeft className="size-5" /></button>
-                  <Avatar name={activeConversation.counterpart.fullName} src={activeConversation.counterpart.avatarUrl || activeConversation.shopAvatarUrl} small />
-                  <div className="min-w-0"><p className="truncate text-sm font-black text-slate-950">{activeConversation.shopName}</p><p className="truncate text-xs text-slate-500">@{activeConversation.counterpart.username}</p></div>
+                  <Avatar name={activeIdentity.name} src={activeIdentity.avatarUrl} small />
+                  <div className="min-w-0"><p className="truncate text-sm font-black text-slate-950">{activeIdentity.name}</p><p className="truncate text-xs text-slate-500">{activeIdentity.detail}</p></div>
                 </header>
                 <div ref={messagesViewportRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f7f9ff] px-4 py-5 sm:px-6" style={{ overflowAnchor: "none" }}>
                   {hasMore ? <div className="mb-5 text-center"><button type="button" onClick={() => void loadOlder()} disabled={isLoadingOlder} className="rounded-full bg-white px-4 py-2 text-xs font-bold text-emerald-700 shadow-sm disabled:opacity-60">{isLoadingOlder ? "Đang tải…" : "Xem tin nhắn cũ hơn"}</button></div> : null}
@@ -327,10 +353,11 @@ export function ChatScreen() {
 }
 
 function Avatar({ name, src, small = false }: { name: string; src: string | null; small?: boolean }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const size = small ? "size-10" : "size-11";
-  return src ? (
+  return src && failedSrc !== src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" referrerPolicy="no-referrer" className={`${size} shrink-0 rounded-full border border-slate-200 object-cover`} />
+    <img src={src} alt={`Ảnh đại diện ${name}`} referrerPolicy="no-referrer" onError={() => setFailedSrc(src)} className={`${size} shrink-0 rounded-full border border-slate-200 object-cover`} />
   ) : <span className={`${size} grid shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700`}>{initials(name)}</span>;
 }
 
