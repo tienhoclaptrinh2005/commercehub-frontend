@@ -7,19 +7,34 @@ import {
   MessageSquareText,
   RefreshCw,
   Send,
+  ShieldCheck,
   Store,
   Wifi,
   WifiOff,
+  Zap,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { useChatRealtime } from "@/components/chat/ChatRealtimeProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { getApiErrorMessage } from "@/services/api";
 import { chatService } from "@/services/chat.service";
 import type { ChatConversation, ChatMessage } from "@/types";
 
 const MESSAGE_LIMIT = 2000;
+
+function positiveId(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function mergeConversation(items: ChatConversation[], selected: ChatConversation | null) {
+  if (!selected || items.some((item) => item.id === selected.id)) return items;
+  return [selected, ...items];
+}
 
 function byId(messages: ChatMessage[]) {
   return [...new Map(messages.map((message) => [message.id, message])).values()].sort((a, b) => a.id - b.id);
@@ -40,8 +55,9 @@ function initials(name: string) {
 }
 
 function accountRoles(conversation: ChatConversation) {
-  return conversation.counterpart.roles.length > 0
-    ? conversation.counterpart.roles.join(" · ")
+  const roles = conversation.counterpart.roles ?? [];
+  return roles.length > 0
+    ? roles.join(" · ")
     : "THÀNH VIÊN";
 }
 
@@ -62,6 +78,11 @@ function conversationIdentity(conversation: ChatConversation) {
 }
 
 export function ChatScreen() {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const searchParams = useSearchParams();
+  const shopParam = searchParams.get("shopId");
+  const conversationParam = searchParams.get("conversationId");
   const {
     status,
     lastEvent,
@@ -101,31 +122,80 @@ export function ChatScreen() {
     viewport.scrollTo({ top: viewport.scrollHeight, behavior });
   }, []);
 
-  const loadConversations = useCallback(async (preferredId?: number) => {
-    const page = await chatService.getConversations();
-    setConversations(page.data);
-    const selected = preferredId ?? activeIdRef.current;
-    if (selected && page.data.some((conversation) => conversation.id === selected)) {
-      setActiveId(selected);
-    } else if (page.data[0]) {
-      setActiveId(page.data[0].id);
+  const rememberConversation = useCallback((conversationId: number) => {
+    const changedConversation = activeIdRef.current !== conversationId;
+    activeIdRef.current = conversationId;
+    setActiveId(conversationId);
+    setError(null);
+    if (changedConversation) {
+      setMessages([]);
+      setHasMore(false);
+      setNextBeforeId(null);
     }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("shopId");
+    url.searchParams.set("conversationId", String(conversationId));
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, []);
+
+  const clearConversation = useCallback(() => {
+    activeIdRef.current = null;
+    setActiveId(null);
+    setMessages([]);
+    setHasMore(false);
+    setNextBeforeId(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("shopId");
+    url.searchParams.delete("conversationId");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, []);
+
+  const loadConversations = useCallback(async () => {
+    const page = await chatService.getConversations();
+    setConversations((current) => {
+      const selected = current.find((item) => item.id === activeIdRef.current) ?? null;
+      return mergeConversation(page.data, selected);
+    });
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
     let cancelled = false;
     const initialize = async () => {
       setIsLoadingConversations(true);
       setError(null);
       try {
-        let preferredId: number | undefined;
-        const shopParam = new URLSearchParams(window.location.search).get("shopId");
-        if (shopParam && /^\d+$/.test(shopParam)) {
-          const created = await chatService.createConversation(Number(shopParam));
-          preferredId = created.id;
-          window.history.replaceState(null, "", "/chat");
+        activeIdRef.current = null;
+        setActiveId(null);
+        setMessages([]);
+
+        const shopId = positiveId(shopParam);
+        const conversationId = positiveId(conversationParam);
+
+        let selected: ChatConversation | null = null;
+        let selectionError: unknown = null;
+        try {
+          if (shopId) {
+            selected = await chatService.createConversation(shopId);
+          } else if (conversationId) {
+            selected = await chatService.getConversation(conversationId);
+          }
+        } catch (requestError) {
+          selectionError = requestError;
         }
-        if (!cancelled) await loadConversations(preferredId);
+
+        const page = await chatService.getConversations();
+        if (cancelled) return;
+        setConversations(mergeConversation(page.data, selected));
+        if (selected) {
+          rememberConversation(selected.id);
+        } else {
+          clearConversation();
+          if (selectionError) {
+            setError(getApiErrorMessage(selectionError,
+              "Cuộc trò chuyện không tồn tại hoặc bạn không có quyền truy cập."));
+          }
+        }
       } catch (requestError) {
         if (!cancelled) setError(getApiErrorMessage(requestError, "Không thể mở hộp thư."));
       } finally {
@@ -134,7 +204,7 @@ export function ChatScreen() {
     };
     void initialize();
     return () => { cancelled = true; };
-  }, [loadConversations]);
+  }, [clearConversation, conversationParam, rememberConversation, shopParam, userId]);
 
   useEffect(() => {
     if (!activeId) {
@@ -182,7 +252,7 @@ export function ChatScreen() {
           requestAnimationFrame(() => scrollMessagesToBottom());
         }
       }
-      void loadConversations(activeIdRef.current ?? undefined);
+      void loadConversations();
     }
   }, [eventSequence, isNearBottom, lastEvent, loadConversations, refreshUnreadCount, scrollMessagesToBottom]);
 
@@ -213,7 +283,7 @@ export function ChatScreen() {
         const newest = missed.at(-1);
         if (newest && !newest.ownMessage) return chatService.markRead(conversationId, newest.id);
       })
-      .then(() => Promise.all([loadConversations(conversationId), refreshUnreadCount()]))
+      .then(() => Promise.all([loadConversations(), refreshUnreadCount()]))
       .catch(() => undefined);
   }, [connectionEpoch, loadConversations, refreshUnreadCount]);
 
@@ -301,7 +371,7 @@ export function ChatScreen() {
               ) : conversations.map((conversation) => {
                 const identity = conversationIdentity(conversation);
                 return (
-                  <button key={conversation.id} type="button" onClick={() => setActiveId(conversation.id)} className={`flex w-full gap-3 border-b border-slate-100 px-4 py-4 text-left transition ${conversation.id === activeId ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
+                  <button key={conversation.id} type="button" onClick={() => rememberConversation(conversation.id)} className={`flex w-full gap-3 border-b border-slate-100 px-4 py-4 text-left transition ${conversation.id === activeId ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
                     <Avatar name={identity.name} src={identity.avatarUrl} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-start justify-between gap-2">
@@ -321,13 +391,34 @@ export function ChatScreen() {
 
           <section className={`${activeConversation ? "flex" : "hidden lg:flex"} min-h-0 min-w-0 flex-col`}>
             {!activeConversation || !activeIdentity ? (
-              <div className="grid flex-1 place-items-center p-8 text-center">
-                <div><MessageSquareText className="mx-auto size-14 text-slate-200" /><p className="mt-4 font-bold text-slate-600">Chọn một cuộc trò chuyện</p></div>
+              <div className="grid flex-1 place-items-center bg-gradient-to-br from-white via-emerald-50/30 to-blue-50/50 p-8 text-center">
+                <div className="max-w-lg">
+                  <span className="mx-auto grid size-20 place-items-center rounded-3xl bg-emerald-700 text-white shadow-xl shadow-emerald-700/20">
+                    <MessageSquareText className="size-9" />
+                  </span>
+                  <p className="mt-7 text-xs font-black uppercase tracking-[0.14em] text-emerald-700">CommerceHub Chat</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-slate-950">Chào mừng đến với Tin nhắn</h2>
+                  <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+                    Chọn một cuộc trò chuyện bên trái để trao đổi trực tiếp. Nội dung được lưu an toàn và đồng bộ theo thời gian thực.
+                  </p>
+                  <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-emerald-100 bg-white/90 p-4 text-left shadow-sm">
+                      <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><Zap className="size-4" /></span>
+                      <p className="mt-3 text-sm font-black text-slate-900">Trao đổi realtime</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">Tin nhắn mới được chuyển đến ngay khi hai bên đang trực tuyến.</p>
+                    </div>
+                    <div className="rounded-2xl border border-blue-100 bg-white/90 p-4 text-left shadow-sm">
+                      <span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-700"><ShieldCheck className="size-4" /></span>
+                      <p className="mt-3 text-sm font-black text-slate-900">Đúng người, đúng hội thoại</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">Chỉ thành viên của cuộc trò chuyện mới có quyền xem và gửi tin.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <>
                 <header className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 sm:px-5">
-                  <button type="button" onClick={() => setActiveId(null)} className="grid size-9 place-items-center rounded-lg hover:bg-slate-100 lg:hidden" aria-label="Quay lại"><ArrowLeft className="size-5" /></button>
+                  <button type="button" onClick={() => clearConversation()} className="grid size-9 place-items-center rounded-lg hover:bg-slate-100 lg:hidden" aria-label="Quay lại"><ArrowLeft className="size-5" /></button>
                   <Avatar name={activeIdentity.name} src={activeIdentity.avatarUrl} small />
                   <div className="min-w-0"><p className="truncate text-sm font-black text-slate-950">{activeIdentity.name}</p><p className="truncate text-xs text-slate-500">{activeIdentity.detail}</p></div>
                 </header>

@@ -14,7 +14,7 @@ import {
 
 import { useAuth } from "@/hooks/auth/useAuth";
 import { readAuthSession } from "@/lib/auth";
-import { refreshAuthSession } from "@/services/api";
+import { getApiErrorMessage, refreshAuthSession } from "@/services/api";
 import { chatService } from "@/services/chat.service";
 import type {
   ChatConnectionStatus,
@@ -97,8 +97,21 @@ export function ChatRealtimeProvider({ children }: { children: ReactNode }) {
       beforeConnect: async () => {
         setStatus("CONNECTING");
         let session = readAuthSession();
-        if (!session || tokenExpiresSoon(session.accessToken)) {
-          session = await refreshAuthSession();
+        try {
+          if (!session || tokenExpiresSoon(session.accessToken)) {
+            session = await refreshAuthSession();
+          }
+        } catch (refreshError) {
+          // Do not reject beforeConnect: STOMP leaves rejected hooks as an
+          // unhandled promise. Retain the current token (if any), let the
+          // socket fail normally, then its reconnect loop will retry refresh.
+          setStatus("DISCONNECTED");
+          setLastError(getApiErrorMessage(refreshError,
+            "Không thể làm mới phiên chat. Hệ thống sẽ tự kết nối lại."));
+        }
+        if (!session) {
+          client.connectHeaders = {};
+          return;
         }
         client.connectHeaders = {
           Authorization: `${session.tokenType} ${session.accessToken}`,

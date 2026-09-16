@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ChatScreen } from "@/components/chat/ChatScreen";
 
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function ChatPage() {
-  return <ChatScreen />;
+  return (
+    <Suspense fallback={<div className="min-h-[560px] bg-[#f7f9ff]" />}>
+      <ChatScreen />
+    </Suspense>
+  );
 }

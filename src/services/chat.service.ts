@@ -30,6 +30,13 @@ export const chatService = {
     return dataOrThrow(response.data, "Không thể tải danh sách trò chuyện");
   },
 
+  async getConversation(conversationId: number): Promise<ChatConversation> {
+    const response = await api.get<ApiResponse<ChatConversation>>(
+      `/api/v1/chat/conversations/${conversationId}`,
+    );
+    return dataOrThrow(response.data, "Không thể mở cuộc trò chuyện");
+  },
+
   async getMessages(
     conversationId: number,
     options: { beforeId?: number; afterId?: number; size?: number } = {},
