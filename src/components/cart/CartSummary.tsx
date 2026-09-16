@@ -10,6 +10,8 @@ interface CartSummaryProps {
   cart: Cart;
   busy: boolean;
   hasUnavailableItems: boolean;
+  voucherDiscount: number;
+  payableAmount: number;
   onCheckout: () => void;
   onClear: () => void;
 }
@@ -18,12 +20,14 @@ export function CartSummary({
   cart,
   busy,
   hasUnavailableItems,
+  voucherDiscount,
+  payableAmount,
   onCheckout,
   onClear,
 }: CartSummaryProps) {
   const { wallet, isLoading: isWalletLoading } = useWalletSummary();
   const availableBalance = Number(wallet?.availableBalance ?? 0);
-  const insufficientBalance = Boolean(wallet) && availableBalance < Number(cart.totalAmount);
+  const insufficientBalance = Boolean(wallet) && availableBalance < payableAmount;
   const checkoutDisabled = busy || hasUnavailableItems || insufficientBalance;
 
   return (
@@ -44,9 +48,16 @@ export function CartSummary({
       <div className="mt-5 flex items-end justify-between gap-4">
         <span className="text-sm font-semibold text-slate-600">Tổng thanh toán</span>
         <strong className="text-2xl font-black tracking-[-0.04em] text-emerald-700">
-          {formatCurrency(Number(cart.totalAmount))}
+          {formatCurrency(payableAmount)}
         </strong>
       </div>
+
+      {voucherDiscount > 0 ? (
+        <div className="mt-2 flex items-center justify-between text-sm text-emerald-700">
+          <span className="font-semibold">Voucher</span>
+          <strong>-{formatCurrency(voucherDiscount)}</strong>
+        </div>
+      ) : null}
 
       <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3.5 py-3 text-sm">
         <span className="inline-flex items-center gap-2 text-slate-500">

@@ -47,6 +47,7 @@ export interface CartBuyerInput {
 export interface CartCheckoutRequest {
   idempotencyKey: string;
   buyerInputs: CartBuyerInput[];
+  vouchers: import("./voucher.types").CheckoutVoucher[];
 }
 
 export interface CheckoutRequest {
@@ -57,4 +58,5 @@ export interface CheckoutRequest {
   }>;
   paymentMethod: "WALLET";
   idempotencyKey: string;
+  vouchers: import("./voucher.types").CheckoutVoucher[];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, LoaderCircle, Store } from "lucide-react";
+import { ChevronRight, LoaderCircle, Store, Tag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -8,7 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppModal } from "@/components/ui/app-modal";
 import { useCart } from "@/hooks/api/useCart";
 import { formatCurrency } from "@/lib/format";
-import type { CartItem as CartItemData } from "@/types";
+import { getApiErrorMessage } from "@/services/api";
+import { voucherService } from "@/services/voucher.service";
+import type { CartItem as CartItemData, CartDeliveryType, VoucherPreview } from "@/types";
 
 import { CartEmpty } from "./CartEmpty";
 import { CartItem } from "./CartItem";
@@ -39,6 +41,9 @@ export function CartScreen() {
   } = useCart();
   const [buyerInputs, setBuyerInputs] = useState<Record<number, string>>({});
   const [retryKey, setRetryKey] = useState<string | null>(null);
+  const [voucherCodes, setVoucherCodes] = useState<Record<string, string>>({});
+  const [voucherPreviews, setVoucherPreviews] = useState<Record<string, VoucherPreview>>({});
+  const [applyingVoucherKey, setApplyingVoucherKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (isHydrated && !user) router.replace("/login");
@@ -73,10 +78,16 @@ export function CartScreen() {
   }, [cart.items]);
 
   const hasUnavailableItems = cart.items.some((item) => !item.available);
+  const voucherDiscount = Object.values(voucherPreviews).reduce(
+    (total, preview) => total + Number(preview.discountAmount),
+    0,
+  );
+  const payableAmount = Math.max(0, Number(cart.totalAmount) - voucherDiscount);
 
   async function changeQuantity(item: CartItemData, quantity: number) {
     if (quantity < 1 || isMutating) return;
     setRetryKey(null);
+    setVoucherPreviews({});
     clearError();
     try {
       await updateQuantity(item.id, quantity);
@@ -88,6 +99,7 @@ export function CartScreen() {
   async function remove(itemId: number) {
     if (isMutating) return;
     setRetryKey(null);
+    setVoucherPreviews({});
     clearError();
     try {
       await removeItem(itemId);
@@ -118,12 +130,49 @@ export function CartScreen() {
     try {
       await clearCart();
       setBuyerInputs({});
+      setVoucherCodes({});
+      setVoucherPreviews({});
       modal.showSuccess({
         title: "Đã xóa giỏ hàng",
         description: "Toàn bộ sản phẩm đã được xóa khỏi giỏ hàng của bạn.",
       });
     } catch {
       // Store đã cung cấp thông báo lỗi dùng chung cho trang.
+    }
+  }
+
+  async function applyVoucher(group: ShopCartGroup, deliveryType: CartDeliveryType) {
+    const key = voucherGroupKey(group.shopId, deliveryType);
+    const code = (voucherCodes[key] ?? "").trim();
+    const items = deliveryType === "INSTANT" ? group.instant : group.preOrder;
+    if (!code || items.length === 0 || applyingVoucherKey) return;
+    setApplyingVoucherKey(key);
+    try {
+      const preview = await voucherService.preview({
+        shopId: group.shopId,
+        deliveryType,
+        code,
+        items: items.map((item) => ({
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+        })),
+      });
+      setVoucherCodes((current) => ({ ...current, [key]: preview.code }));
+      setVoucherPreviews((current) => ({ ...current, [key]: preview }));
+      setRetryKey(null);
+    } catch (requestError) {
+      setVoucherPreviews((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      modal.showError({
+        title: "Không thể áp dụng mã",
+        description: getApiErrorMessage(requestError, "Mã giảm giá không hợp lệ"),
+        confirmLabel: "Đã hiểu",
+      });
+    } finally {
+      setApplyingVoucherKey(null);
     }
   }
 
@@ -145,7 +194,7 @@ export function CartScreen() {
           <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
             <dt className="font-bold text-slate-700">Tổng thanh toán</dt>
             <dd className="font-black text-emerald-700">
-              {formatCurrency(Number(cart.totalAmount))}
+              {formatCurrency(payableAmount)}
             </dd>
           </div>
         </dl>
@@ -167,9 +216,19 @@ export function CartScreen() {
             buyerInputs: (buyerInputs[item.productVariantId] ?? "").trim(),
           }))
           .filter((input) => input.buyerInputs.length > 0),
+        vouchers: Object.entries(voucherPreviews).map(([key, preview]) => {
+          const [shopId, deliveryType] = key.split(":");
+          return {
+            shopId: Number(shopId),
+            deliveryType: deliveryType as CartDeliveryType,
+            code: preview.code,
+          };
+        }),
       });
       setRetryKey(null);
       setBuyerInputs({});
+      setVoucherCodes({});
+      setVoucherPreviews({});
       window.dispatchEvent(new Event("commercehub:wallet-updated"));
       modal.showSuccess({
         title: "Thanh toán giỏ hàng thành công",
@@ -273,6 +332,22 @@ export function CartScreen() {
                         />
                       ))}
                     </div>
+                    <CartVoucherEntry
+                      value={voucherCodes[voucherGroupKey(group.shopId, "INSTANT")] ?? ""}
+                      preview={voucherPreviews[voucherGroupKey(group.shopId, "INSTANT")]}
+                      busy={applyingVoucherKey === voucherGroupKey(group.shopId, "INSTANT")}
+                      onChange={(value) => {
+                        const key = voucherGroupKey(group.shopId, "INSTANT");
+                        setVoucherCodes((current) => ({ ...current, [key]: value }));
+                        setVoucherPreviews((current) => {
+                          const next = { ...current };
+                          delete next[key];
+                          return next;
+                        });
+                        setRetryKey(null);
+                      }}
+                      onApply={() => void applyVoucher(group, "INSTANT")}
+                    />
                   </div>
                 ) : null}
 
@@ -300,6 +375,22 @@ export function CartScreen() {
                         />
                       ))}
                     </div>
+                    <CartVoucherEntry
+                      value={voucherCodes[voucherGroupKey(group.shopId, "PRE_ORDER")] ?? ""}
+                      preview={voucherPreviews[voucherGroupKey(group.shopId, "PRE_ORDER")]}
+                      busy={applyingVoucherKey === voucherGroupKey(group.shopId, "PRE_ORDER")}
+                      onChange={(value) => {
+                        const key = voucherGroupKey(group.shopId, "PRE_ORDER");
+                        setVoucherCodes((current) => ({ ...current, [key]: value }));
+                        setVoucherPreviews((current) => {
+                          const next = { ...current };
+                          delete next[key];
+                          return next;
+                        });
+                        setRetryKey(null);
+                      }}
+                      onApply={() => void applyVoucher(group, "PRE_ORDER")}
+                    />
                   </div>
                 ) : null}
               </section>
@@ -310,11 +401,61 @@ export function CartScreen() {
             cart={cart}
             busy={isMutating}
             hasUnavailableItems={hasUnavailableItems}
+            voucherDiscount={voucherDiscount}
+            payableAmount={payableAmount}
             onCheckout={() => void checkoutAll()}
             onClear={() => void clearAll()}
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function voucherGroupKey(shopId: number, deliveryType: CartDeliveryType) {
+  return `${shopId}:${deliveryType}`;
+}
+
+function CartVoucherEntry({
+  value,
+  preview,
+  busy,
+  onChange,
+  onApply,
+}: {
+  value: string;
+  preview?: VoucherPreview;
+  busy: boolean;
+  onChange: (value: string) => void;
+  onApply: () => void;
+}) {
+  return (
+    <div className="border-t border-dashed border-slate-200 bg-slate-50/60 px-4 py-3.5 sm:px-5">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.05em] text-slate-600">
+        <Tag className="size-4 text-emerald-600" />
+        Mã giảm giá cho nhóm đơn này
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          placeholder="Ví dụ: SALE10"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold uppercase outline-none focus:border-emerald-500"
+        />
+        <button
+          type="button"
+          disabled={!value.trim() || busy}
+          onClick={onApply}
+          className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {busy ? "Đang kiểm tra..." : "Áp dụng"}
+        </button>
+      </div>
+      {preview ? (
+        <p className="mt-2 text-xs font-semibold text-emerald-700">
+          Đã giảm {formatCurrency(preview.discountAmount)} · Nhóm đơn còn {formatCurrency(preview.totalAmount)}
+        </p>
+      ) : null}
     </div>
   );
 }

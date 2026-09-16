@@ -94,7 +94,7 @@ export const sellerNavigation: SellerNavigationItem[] = [
     label: "Mã giảm giá",
     href: "/seller/vouchers",
     icon: TicketPercent,
-    available: false,
+    available: true,
     dividerBefore: true,
   },
   {

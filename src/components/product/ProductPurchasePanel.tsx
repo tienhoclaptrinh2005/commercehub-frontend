@@ -20,8 +20,9 @@ import { formatCurrency } from "@/lib/format";
 import { PRE_ORDER_PROCESSING_HOURS } from "@/lib/pre-order-policy";
 import { getApiErrorMessage } from "@/services/api";
 import { checkoutService } from "@/services/checkout.service";
+import { voucherService } from "@/services/voucher.service";
 import { useCartStore } from "@/stores/cartStore";
-import type { ProductDetail } from "@/types";
+import type { ProductDetail, VoucherPreview } from "@/types";
 
 import { ProductVariantSelector } from "./ProductVariantSelector";
 
@@ -46,6 +47,8 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   >(activeVariants[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [voucherCode, setVoucherCode] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<VoucherPreview | null>(null);
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
   const buyerInputsRef = useRef("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -70,6 +73,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     setQuantity(1);
     buyerInputsRef.current = "";
     setRetryIdempotencyKey(null);
+    setAppliedVoucher(null);
   }
 
   async function checkout() {
@@ -90,7 +94,8 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
             productName={product.name}
             variantName={selectedVariant.name}
             quantity={quantity}
-            total={Number(selectedVariant.price) * quantity}
+            total={appliedVoucher?.totalAmount ?? Number(selectedVariant.price) * quantity}
+            discount={appliedVoucher?.discountAmount ?? 0}
           />
           {isPreOrder ? (
             <PreOrderCheckoutFields
@@ -123,8 +128,17 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         ],
         paymentMethod: "WALLET",
         idempotencyKey,
+        vouchers: appliedVoucher
+          ? [{
+              shopId: product.shopId,
+              deliveryType: product.deliveryType,
+              code: appliedVoucher.code,
+            }]
+          : [],
       });
       setRetryIdempotencyKey(null);
+      setAppliedVoucher(null);
+      setVoucherCode("");
       window.dispatchEvent(new Event("commercehub:wallet-updated"));
       modal.showSuccess({
         title: isPreOrder ? "Đặt hàng thành công" : "Thanh toán thành công",
@@ -166,6 +180,35 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       });
     } finally {
       setIsCheckingOut(false);
+    }
+  }
+
+  async function applyVoucher() {
+    if (!selectedVariant || !voucherCode.trim() || isApplyingVoucher) return;
+    if (!isHydrated || !user) {
+      router.push("/login");
+      return;
+    }
+    setIsApplyingVoucher(true);
+    try {
+      const preview = await voucherService.preview({
+        shopId: product.shopId,
+        deliveryType: product.deliveryType,
+        code: voucherCode.trim(),
+        items: [{ productVariantId: selectedVariant.id, quantity }],
+      });
+      setVoucherCode(preview.code);
+      setAppliedVoucher(preview);
+      setRetryIdempotencyKey(null);
+    } catch (requestError) {
+      setAppliedVoucher(null);
+      modal.showError({
+        title: "Không thể áp dụng mã",
+        description: getApiErrorMessage(requestError, "Mã giảm giá không hợp lệ"),
+        confirmLabel: "Đã hiểu",
+      });
+    } finally {
+      setIsApplyingVoucher(false);
     }
   }
 
@@ -247,7 +290,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <div className="mt-3 inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white">
           <button
             type="button"
-            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+            onClick={() => {
+              setQuantity((current) => Math.max(1, current - 1));
+              setAppliedVoucher(null);
+              setRetryIdempotencyKey(null);
+            }}
             disabled={quantity <= 1}
             className="grid size-11 place-items-center text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Giảm số lượng"
@@ -259,9 +306,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           </output>
           <button
             type="button"
-            onClick={() =>
-              setQuantity((current) => Math.min(maxQuantity, current + 1))
-            }
+            onClick={() => {
+              setQuantity((current) => Math.min(maxQuantity, current + 1));
+              setAppliedVoucher(null);
+              setRetryIdempotencyKey(null);
+            }}
             disabled={quantity >= maxQuantity || unavailable}
             className="grid size-11 place-items-center text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Tăng số lượng"
@@ -283,22 +332,30 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <input
             id="product-voucher"
             value={voucherCode}
-            onChange={(event) => setVoucherCode(event.target.value)}
+            onChange={(event) => {
+              setVoucherCode(event.target.value.toUpperCase());
+              setAppliedVoucher(null);
+              setRetryIdempotencyKey(null);
+            }}
             placeholder="Nhập voucher code"
             className="h-11 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm uppercase outline-none transition placeholder:normal-case placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
           />
           <button
             type="button"
-            disabled
-            title="Voucher sẽ được kiểm tra tại bước thanh toán"
-            className="h-11 rounded-lg bg-slate-100 px-5 text-sm font-bold text-slate-400"
+            onClick={() => void applyVoucher()}
+            disabled={!voucherCode.trim() || isApplyingVoucher || unavailable}
+            className="h-11 rounded-lg bg-emerald-600 px-5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
-            Áp dụng
+            {isApplyingVoucher ? "Đang kiểm tra..." : "Áp dụng"}
           </button>
         </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Voucher sẽ được xác minh ở bước thanh toán.
-        </p>
+        {appliedVoucher ? (
+          <p className="mt-2 text-xs font-semibold text-emerald-700">
+            Đã giảm {formatCurrency(appliedVoucher.discountAmount)} · Còn {formatCurrency(appliedVoucher.totalAmount)}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-slate-400">Mã sẽ được backend kiểm tra lại khi thanh toán.</p>
+        )}
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -351,11 +408,13 @@ function OrderCheckoutSummary({
   variantName,
   quantity,
   total,
+  discount,
 }: {
   productName: string;
   variantName: string;
   quantity: number;
   total: number;
+  discount: number;
 }) {
   return (
     <dl className="space-y-1.5">
@@ -375,6 +434,12 @@ function OrderCheckoutSummary({
         <dt className="font-bold text-slate-700">Tổng tiền</dt>
         <dd className="font-black text-emerald-700">{formatCurrency(total)}</dd>
       </div>
+      {discount > 0 ? (
+        <div className="flex justify-between gap-4 text-emerald-700">
+          <dt className="font-semibold">Đã giảm</dt>
+          <dd className="font-bold">-{formatCurrency(discount)}</dd>
+        </div>
+      ) : null}
     </dl>
   );
 }

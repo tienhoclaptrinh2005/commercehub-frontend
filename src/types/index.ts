@@ -12,3 +12,4 @@ export * from "./seller-fee.types";
 export * from "./shop.types";
 export * from "./user.types";
 export * from "./wallet.types";
+export * from "./voucher.types";

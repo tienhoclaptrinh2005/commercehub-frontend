@@ -58,6 +58,8 @@ export interface OrderItemDetail {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  lineSubtotal: number;
+  voucherDiscount: number;
   preOrder: PreOrderItemDetail | null;
   complaintAllowed: boolean;
   complaintDeadlineAt: string | null;
