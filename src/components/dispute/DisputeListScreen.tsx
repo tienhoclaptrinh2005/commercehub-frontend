@@ -17,6 +17,7 @@ type AdminScope = "QUEUE" | "ALL";
 const RESOLUTION_LABELS: Record<NonNullable<Dispute["resolution"]>, string> = {
   BUYER_WIN: "Buyer thắng",
   SELLER_WIN: "Seller thắng",
+  SELLER_REFUND: "Seller chủ động hoàn tiền",
   BUYER_WITHDREW: "Buyer tự hủy",
   WARRANTY_ACCEPTED: "Buyer đã đồng ý bảo hành",
   BUYER_CONFIRMATION_TIMEOUT: "Buyer quá hạn xác nhận",

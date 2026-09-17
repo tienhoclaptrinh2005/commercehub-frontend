@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAppModal } from "@/components/ui/app-modal";
+import { useOptionalSellerNotifications } from "@/hooks/api/useSellerNotifications";
 import { formatCurrency } from "@/lib/format";
 import { getApiErrorMessage } from "@/services/api";
 import { disputeService } from "@/services/dispute.service";
@@ -23,6 +24,7 @@ type ActionConfirmation = {
 const RESOLUTION_LABELS: Record<NonNullable<Dispute["resolution"]>, string> = {
   BUYER_WIN: "Buyer thắng — đã hoàn tiền",
   SELLER_WIN: "Seller thắng — tiếp tục thời gian giữ tiền",
+  SELLER_REFUND: "Seller chủ động hoàn 100%",
   BUYER_WITHDREW: "Buyer tự hủy khiếu nại",
   WARRANTY_ACCEPTED: "Buyer xác nhận bảo hành thành công",
   BUYER_CONFIRMATION_TIMEOUT: "Buyer không phản hồi trong thời hạn xác nhận",
@@ -30,6 +32,7 @@ const RESOLUTION_LABELS: Record<NonNullable<Dispute["resolution"]>, string> = {
 
 export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
   const modal = useAppModal();
+  const sellerNotifications = useOptionalSellerNotifications();
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [response, setResponse] = useState("");
   const [escalationReason, setEscalationReason] = useState("");
@@ -66,7 +69,13 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
   ) {
     const confirmed = await modal.confirm({
       ...confirmation,
-      details: <p className="text-center">Đơn hàng <strong className="text-slate-950">{dispute?.orderCode || "Chưa cập nhật mã đơn"}</strong></p>,
+      details: (
+        <div className="space-y-1 text-center">
+          <p>Đơn hàng <strong className="text-slate-950">{dispute?.orderCode || "Chưa cập nhật mã đơn"}</strong></p>
+          <p className="text-xs text-slate-500">{dispute?.productName || "Sản phẩm"} · {dispute?.variantName || "Mặc định"}</p>
+          {dispute?.disputedAmount != null ? <p className="font-black text-emerald-700">{formatCurrency(Number(dispute.disputedAmount))}</p> : null}
+        </div>
+      ),
       cancelLabel: "Hủy",
     });
     if (!confirmed) return;
@@ -76,6 +85,7 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
     try {
       setDispute(await action());
       if (mode === "admin") window.dispatchEvent(new Event("admin-disputes-updated"));
+      if (mode === "seller") await sellerNotifications?.refresh();
       modal.showSuccess({
         title: success,
         description: "Trạng thái khiếu nại đã được cập nhật thành công.",
@@ -171,6 +181,16 @@ export function DisputeDetailScreen({ id, mode }: { id: number; mode: Mode }) {
           <div className="mt-3 flex flex-wrap gap-2">
             {dispute.status === "OPEN" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.startWarranty(dispute, { response }), "Đã bắt đầu bảo hành", { title: "Xác nhận nhận bảo hành", description: "Bạn xác nhận tiếp nhận và xử lý khiếu nại này cho buyer.", confirmLabel: "Nhận bảo hành" })}>Nhận bảo hành</ActionButton> : null}
             {dispute.status === "WARRANTY_IN_PROGRESS" ? <ActionButton disabled={submitting} onClick={() => void run(() => disputeService.completeWarranty(dispute, { response }), "Đã chuyển sang chờ buyer xác nhận", { title: "Xác nhận đã xử lý xong", description: "Khiếu nại sẽ chuyển sang chờ buyer xác nhận kết quả bảo hành.", confirmLabel: "Báo đã xử lý" })}>Báo đã xử lý xong</ActionButton> : null}
+            <ActionButton refund disabled={submitting} onClick={() => void run(
+              () => disputeService.refundSeller(dispute, { response }),
+              "Đã hoàn tiền cho buyer",
+              {
+                title: "Hoàn tiền sản phẩm khiếu nại?",
+                description: `Hệ thống sẽ hoàn 100%${dispute.disputedAmount != null ? ` (${formatCurrency(Number(dispute.disputedAmount))})` : ""} vào ví CommerceHub của buyer. Khiếu nại sẽ đóng ngay và thao tác này không thể hoàn tác.`,
+                confirmLabel: "Xác nhận hoàn tiền",
+                danger: true,
+              },
+            )}>Hoàn tiền sản phẩm</ActionButton>
             <ActionButton danger disabled={submitting || !escalationReason.trim()} onClick={() => void run(() => disputeService.escalateSeller(dispute, { reason: escalationReason.trim() }), "Đã chuyển tranh chấp cho admin", { title: "Chuyển tranh chấp cho Admin?", description: "Seller từ chối hoặc không thể bảo hành; lý do sẽ được lưu trong hồ sơ phán quyết.", confirmLabel: "Chuyển Admin", danger: true })}>Từ chối / chuyển Admin</ActionButton>
           </div>
         </ActionPanel>
@@ -227,6 +247,11 @@ function UserProfileLink({ label, username }: { label: string; username: string 
 function ActionPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h2 className="mb-4 flex items-center gap-2 font-black text-slate-900"><Scale className="size-5 text-violet-600" />{title}</h2>{children}</section>;
 }
-function ActionButton({ children, danger = false, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
-  return <button type="button" {...props} className={`h-11 rounded-xl px-5 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${danger ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>{children}</button>;
+function ActionButton({ children, danger = false, refund = false, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean; refund?: boolean }) {
+  const tone = danger
+    ? "bg-rose-600 hover:bg-rose-700"
+    : refund
+      ? "bg-amber-500 hover:bg-amber-600"
+      : "bg-emerald-600 hover:bg-emerald-700";
+  return <button type="button" {...props} className={`h-11 rounded-xl px-5 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${tone}`}>{children}</button>;
 }

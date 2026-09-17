@@ -36,8 +36,8 @@ const listClassName = "mt-3 list-disc space-y-2 pl-5 marker:text-emerald-600";
 
 const flowSteps = [
   ["01", "Buyer mở khiếu nại", "Chỉ thực hiện khi mục hàng còn HOLDING và còn thời gian T+7."],
-  ["02", "Seller phản hồi trong 24 giờ", "Seller nhận bảo hành hoặc chuyển tranh chấp cho Admin."],
-  ["03", "Bảo hành tối đa 24 giờ", "Nếu seller đã nhận nhưng không xử lý đúng hạn, hệ thống hoàn tiền."],
+  ["02", "Seller phản hồi trong 24 giờ", "Seller nhận bảo hành, chủ động hoàn tiền hoặc chuyển tranh chấp cho Admin."],
+  ["03", "Bảo hành tối đa 24 giờ", "Trong lúc bảo hành, seller vẫn có thể hoàn tiền; nếu quá hạn, hệ thống tự động hoàn tiền."],
   ["04", "Buyer xác nhận", "Buyer có 24 giờ để đồng ý kết quả hoặc chuyển Admin khi không đồng ý."],
   ["05", "Đóng hoặc phán quyết", "Giao dịch tiếp tục T+7 còn lại hoặc buyer được hoàn 100%."],
 ] as const;
@@ -169,6 +169,7 @@ export default function WarrantyPolicyPage() {
         <ul className={listClassName}>
           <li>Buyer có thể tự hủy khiếu nại khi hồ sơ đang chờ seller hoặc seller đang bảo hành và thời hạn phản hồi chưa hết.</li>
           <li>Buyer tự hủy đồng nghĩa hồ sơ được đóng; cùng mục hàng đó không thể tạo khiếu nại lần thứ hai.</li>
+          <li>Seller có thể chủ động hoàn 100% giá trị mục hàng khi mới nhận khiếu nại hoặc trong lúc đang bảo hành; hồ sơ sẽ đóng ngay và không cần Admin phán quyết.</li>
           <li>Khi seller báo đã xử lý, buyer có 24 giờ để đồng ý hoặc từ chối kết quả. Buyer từ chối sẽ chuyển hồ sơ cho Admin.</li>
           <li>Buyer không phản hồi trong 24 giờ thì hồ sơ đóng và thời gian T+7 còn lại tiếp tục chạy.</li>
         </ul>
@@ -181,6 +182,7 @@ export default function WarrantyPolicyPage() {
           <li>Đơn đặt hàng bị shop từ chối hoặc tự động hủy vì quá hạn tiếp nhận/xử lý.</li>
           <li>Seller không phản hồi khiếu nại trong 24 giờ.</li>
           <li>Seller đã nhận bảo hành nhưng không hoàn tất trong 24 giờ.</li>
+          <li>Seller chủ động chọn hoàn tiền khi phản hồi khiếu nại hoặc trong lúc bảo hành.</li>
           <li>Admin xem xét bằng chứng và phán quyết buyer thắng tranh chấp.</li>
         </ul>
         <p className="mt-3">

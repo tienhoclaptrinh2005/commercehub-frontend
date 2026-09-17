@@ -8,11 +8,12 @@ export type DisputeStatus =
 export type DisputeResolution =
   | "BUYER_WIN"
   | "SELLER_WIN"
+  | "SELLER_REFUND"
   | "BUYER_WITHDREW"
   | "WARRANTY_ACCEPTED"
   | "BUYER_CONFIRMATION_TIMEOUT";
 
-export type DisputeResolvedBy = "BUYER" | "ADMIN" | "SYSTEM";
+export type DisputeResolvedBy = "BUYER" | "SELLER" | "ADMIN" | "SYSTEM";
 export type DisputeEscalatedBy = "BUYER" | "SELLER";
 
 export interface Dispute {
@@ -25,6 +26,7 @@ export interface Dispute {
   shopName: string;
   productName: string;
   variantName: string;
+  disputedAmount: number | null;
   buyerUsername: string | null;
   sellerUsername: string | null;
   reason: string;

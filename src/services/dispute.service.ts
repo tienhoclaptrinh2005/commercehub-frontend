@@ -82,6 +82,14 @@ export const disputeService = {
     return unwrap(response.data, "Không thể hoàn thành bảo hành");
   },
 
+  async refundSeller(dispute: Dispute, payload: SellerDisputeResponseRequest) {
+    const response = await api.post<ApiResponse<Dispute>>(
+      `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/dispute-refund`,
+      payload,
+    );
+    return unwrap(response.data, "Không thể hoàn tiền sản phẩm khiếu nại");
+  },
+
   async escalateSeller(dispute: Dispute, payload: EscalateDisputeRequest) {
     const response = await api.post<ApiResponse<Dispute>>(
       `/api/v1/seller/orders/${dispute.orderId}/items/${dispute.orderItemId}/dispute`,
