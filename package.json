@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "uat:chat": "node scripts/chat-uat.mjs"
+    "uat:chat": "node scripts/chat-uat.mjs",
+    "uat:system": "node scripts/system-uat.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
