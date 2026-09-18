@@ -18,7 +18,11 @@ const mediaRemotePattern = getMediaRemotePattern();
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      new URL("https://vietqr.app/img/**"),
+      {
+        protocol: "https",
+        hostname: "vietqr.app",
+        pathname: "/img",
+      },
       {
         protocol: "https",
         hostname: "**.googleusercontent.com",
